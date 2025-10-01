@@ -1,0 +1,68 @@
+{
+  "order_id": "example-order-template",
+  "priority": "reference",
+  "supercontext": {
+    "repository": "docling_langextract_testing",
+    "mission": "Provide contributors with a sample order that clarifies structure and expectations before tackling real tasks."
+  },
+  "goal": "Use this template as a guide when drafting new orders so they remain consistent and actionable.",
+  "execution_instructions": [
+    "Read this entire order before touching the codebase.",
+    "Follow every step in sequence. Do not skip a step unless it explicitly tells you to note that it is not needed.",
+    "If any instruction is unclear or impossible (missing file, command fails repeatedly), stop immediately and escalate for clarification."
+  ],
+  "tasks": [
+    {
+      "id": "understand-template",
+      "description": "Confirm you understand the template before creating or executing a real order.",
+      "steps": [
+        "Locate this file at docs/orders/example-order-template.json in your editor.",
+        "Read every section: supercontext, goal, tasks, acceptance criteria, constraints, execution_instructions.",
+        "After reading, add a short note to your working log confirming you understand the structure (e.g., 'Template read on 2025-02-15')."
+      ]
+    },
+    {
+      "id": "tailor-real-orders",
+      "description": "When drafting a new order, customize all placeholders so the task is specific and actionable.",
+      "steps": [
+        "Copy this template into a new JSON file under docs/orders/ with a meaningful order_id (e.g., 'feature-xyz-001').",
+        "Replace the mission, goal, and tasks with the real objective—do not leave generic text.",
+        "For each task, include a \"steps\" array so future agents know exactly what to do.",
+        "Double-check that acceptance criteria map directly to the tasks you listed."
+      ]
+    },
+    {
+      "id": "document-updates",
+      "description": "Call out documentation expectations explicitly every time you draft an order.",
+      "steps": [
+        "List which files might need doc updates: README.md, AGENTS.md, docs/*.md, or note 'No documentation updates required' if none apply.",
+        "If docs must change, include the exact file path and a short summary of the expected edit (e.g., 'README.md: add OpenRouter instructions to Quick Start').",
+        "Add a reminder in the order to mention documentation results in the final work summary (updated vs. no-change)."
+      ]
+    },
+    {
+      "id": "testing-plan",
+      "description": "Specify the tests that must run after the work is done, including fallback guidance if they cannot run.",
+      "steps": [
+        "Identify the required automated tests. At minimum, list relevant commands such as 'uv run python -m pytest tests/...', 'uv run python tests/run_all_tests.py --quick'.",
+        "If tests depend on credentials (e.g., GEMINI_API_KEY), explicitly call that out.",
+        "When no automated test exists, state the manual verification required (e.g., 'Manual: run streamlit app and confirm dropdown shows OpenRouter').",
+        "Include instructions to record test outcomes or skip reasons in docs/reports/ or the work summary."
+      ]
+    }
+  ],
+  "acceptance_criteria": [
+    "New orders include repository context, explicit goals, sequenced tasks with step-by-step checklists, and measurable acceptance criteria.",
+    "Documentation expectations and testing requirements are spelled out so agents know exactly what to update and run.",
+    "Agents reference this template and follow escalation guidance when something is unclear."
+  ],
+  "constraints": {
+    "what_not_to_do": [
+      "Do not copy this file verbatim into production orders; always customize details.",
+      "Do not omit acceptance criteria—orders must state how success is evaluated.",
+      "Do not bypass documented toggles, environment variables, or configuration patterns when executing real tasks.",
+      "Do not guess when unsure. Stop and request clarification instead of inventing steps."
+    ],
+    "escalation_guidance": "If any instruction conflicts with repository guardrails (security, configuration, testing) or cannot be completed, pause work and ask for help before proceeding."
+  }
+}
