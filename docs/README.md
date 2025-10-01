@@ -50,8 +50,8 @@ docs/
 - [ ] **Extractor Provider Matrix** - Comparison of available document and event extraction services
 - [ ] **Performance Benchmarking Guide** - Standardized testing procedures and metrics
 - [ ] **Troubleshooting Runbook** - Common issues and resolution procedures
-- [ ] **API Integration Guide** - Instructions for adding new extraction providers
-- [ ] **Configuration Reference** - Complete environment variable and settings documentation
+- [x] **API Integration Guide** - Instructions for adding new extraction providers (see `docs/guides/provider_integration_guide.md`)
+- [x] **Configuration Reference** - Complete environment variable and settings documentation (see `docs/reference/configuration.md`)
 
 ### 📊 Test Documentation
 - [ ] **Test Report Archive** - Historical test results and performance tracking

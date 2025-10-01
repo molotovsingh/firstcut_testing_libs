@@ -2,13 +2,13 @@
 
 > **Status:** Draft
 
-> **Last Updated:** 2025-09-24
+> **Last Updated:** 2025-10-01
 
 > **Author:** Codex assistant
 
 ## 1. Background
 - Current proof-of-concept relies on Docling for document parsing and LangExtract (Gemini) for legal event extraction.
-- Early validation (Order 6 verification) proved the adapter interfaces work but the system only ships with a single concrete implementation on each side.
+- Early validation (event-extractor-002, event-extractor-003, streamlit-provider-selector-001) proved the adapter interfaces work and shipped three working providers: LangExtract, OpenRouter, and OpenCode Zen.
 - Product aims to evaluate multiple vendor combinations (e.g., Docling vs. PyPDF; LangExtract vs. OpenRouter/OpenAI/Anthropic) without rewriting pipeline code.
 
 ## 2. Problem Statement
@@ -29,7 +29,7 @@ Legal ops teams want to plug in different document processors and LLM-backed eve
 
 ## 4. Non-Goals
 - Solving credential storage or secret management beyond environment variables.
-- Providing UI-based configuration switching (CLI/env only for this phase).
+- ~~Providing UI-based configuration switching (CLI/env only for this phase).~~ ✅ **COMPLETED** - See streamlit-provider-selector-001
 - Guaranteeing support for arbitrary third-party libraries without adapter work.
 - Handling hybrid orchestration (multiple providers per run) in this iteration.
 
@@ -91,5 +91,5 @@ Legal ops teams want to plug in different document processors and LLM-backed eve
 - Should capability metadata feed into Streamlit UI immediately or remain internal?
 
 ## 13. Appendix
-- Related docs: `README.md`, `CLAUDE.md`, future ADR `docs/adr/ADR-001-pluggable-extractors.md`.
+- Related docs: `README.md`, `CLAUDE.md`, existing ADR `docs/adr/ADR-001-pluggable-extractors.md`.
 - Prior verification log: `~/claude-conversations/docling_langextract_testing/2025-09-23_111500_docling_verification_conversation.md`.

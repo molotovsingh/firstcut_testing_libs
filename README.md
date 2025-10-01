@@ -21,15 +21,16 @@ This project requires a Google API key for LangExtract functionality. **NEVER co
 
 ## 🎯 Purpose
 
-**Simple Test:** Documents In → List of Dates Out
+**Legal Events Extraction:** Documents In → Five-Column Legal Events Table Out
 
-This is a **proof-of-concept** to evaluate if `docling + langextract` can power a paralegal application that extracts dates from legal documents.
+This is a **proof-of-concept** to evaluate document parsing and AI-based legal event extraction for paralegal applications. The system extracts structured legal events with dates, event particulars, citations, and document references.
 
 ## 🧪 Test Scope
 
-- **Library Combination:** [Docling](https://github.com/DS4SD/docling) + [Google's Langextract](https://github.com/google/langextract)
-- **Business Use Case:** Paralegal date extraction from legal documents
-- **Goal:** Determine if this combination can reliably extract dates from various document types
+- **Core Pipeline:** [Docling](https://github.com/DS4SD/docling) for document parsing + Multiple AI providers for event extraction
+- **Business Use Case:** Legal event extraction from court documents, contracts, correspondence, and legal filings
+- **Goal:** Test parser + extractor combinations to identify optimal configurations for quality, cost, and speed
+- **Provider Flexibility:** Supports LangExtract (Gemini), OpenRouter (11+ tested models), and OpenCode Zen with in-app provider switching
 
 ## 🚀 Quick Start
 
