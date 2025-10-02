@@ -1,18 +1,21 @@
 # ADR-001: Pluggable Document and Event Extractors
 
-- **Status:** Proposed
+- **Status:** Accepted (Event extractors implemented; document parsers pending)
 - **Date:** 2025-09-24
+- **Implementation Date:** 2025-10-01
 - **Owner:** Codex assistant
 - **Related Docs:** `docs/pluggable_extractors_prd.md`, `README.md`, `src/core/interfaces.py`
 
 ## Context
-The legal events pipeline currently wires Docling for document ingestion and LangExtract (Gemini) for event extraction. While interfaces exist, concrete implementations are hardcoded, forcing code edits to evaluate other providers (PyPDF, OpenRouter, OpenAI, Anthropic, in-house tools). Product needs the ability to mix and match extractors through configuration so teams can pick providers based on latency, security, and cost without touching pipeline orchestration.
+The legal events pipeline initially wired Docling for document ingestion and LangExtract (Gemini) for event extraction with hardcoded implementations. Product needs the ability to mix and match extractors through configuration so teams can pick providers based on latency, security, and cost without touching pipeline orchestration.
+
+**Implementation Status**: Event extractors are now pluggable via `EVENT_PROVIDER_REGISTRY` in `src/core/extractor_factory.py`, supporting LangExtract (Gemini), OpenRouter (11+ tested models), and OpenCode Zen (2 tested models). Document parsers remain hardcoded to Docling pending Phase 2.
 
 Constraints and observations:
-- `src/core/interfaces.py` already defines `DocumentExtractor` and `EventExtractor` protocols with `is_available()` hooks.
-- `src/core/config.py` loads environment variables but returns monolithic config objects geared toward Docling + LangExtract.
-- `src/core/extractor_factory.py` currently instantiates Docling and LangExtract directly.
-- Tests and Streamlit UI assume the baseline providers but can be extended to surface provider names.
+- `src/core/interfaces.py` defines `DocumentExtractor` and `EventExtractor` protocols with `is_available()` hooks.
+- `src/core/config.py` provides typed dataclasses per provider (LangExtractConfig, OpenRouterConfig, OpenCodeZenConfig).
+- `src/core/extractor_factory.py` uses `EVENT_PROVIDER_REGISTRY` to instantiate adapters based on `EVENT_EXTRACTOR` environment variable.
+- Streamlit UI provides provider selection dropdown with 3 active providers (see streamlit-provider-selector-001).
 
 ## Decision
 Implement a provider registry architecture that maps configuration keys to adapter factories on both sides of the pipeline.

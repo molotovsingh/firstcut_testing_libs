@@ -1,8 +1,8 @@
 # Pluggable Extractors PRD
 
-> **Status:** Draft
+> **Status:** Implemented (3 event extractors; document parsers pending)
 
-> **Last Updated:** 2025-10-01
+> **Last Updated:** 2025-10-02
 
 > **Author:** Codex assistant
 
@@ -12,7 +12,9 @@
 - Product aims to evaluate multiple vendor combinations (e.g., Docling vs. PyPDF; LangExtract vs. OpenRouter/OpenAI/Anthropic) without rewriting pipeline code.
 
 ## 2. Problem Statement
-Legal ops teams want to plug in different document processors and LLM-backed event extractors depending on data sensitivity, cost, latency, and availability. Today the pipeline hardcodes Docling + LangExtract, forcing code changes to trial alternatives and making it difficult to compare providers or deploy to environments without Gemini access.
+Legal ops teams want to plug in different document processors and LLM-backed event extractors depending on data sensitivity, cost, latency, and availability. The pipeline initially hardcoded Docling + LangExtract, forcing code changes to trial alternatives and making it difficult to compare providers or deploy to environments without Gemini access.
+
+**Current Status**: Event extractors are now pluggable via `ExtractorFactory` with 3 implemented providers (LangExtract, OpenRouter, OpenCode Zen). Document parsers remain hardcoded to Docling pending Phase 2 implementation.
 
 ## 3. Goals & Success Metrics
 ### Goals
