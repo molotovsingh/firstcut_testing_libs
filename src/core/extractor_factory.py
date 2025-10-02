@@ -9,13 +9,14 @@ from typing import Tuple, Callable, Dict, Any, Optional
 from .interfaces import DocumentExtractor, EventExtractor
 from .config import (
     DoclingConfig, LangExtractConfig, ExtractorConfig,
-    OpenRouterConfig, OpenCodeZenConfig,
+    OpenRouterConfig, OpenCodeZenConfig, OpenAIConfig,
     load_config, load_provider_config
 )
 from .docling_adapter import DoclingDocumentExtractor
 from .langextract_adapter import LangExtractEventExtractor
 from .openrouter_adapter import OpenRouterEventExtractor
 from .opencode_zen_adapter import OpenCodeZenEventExtractor
+from .openai_adapter import OpenAIEventExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -51,10 +52,20 @@ def _create_opencode_zen_event_extractor(
     return OpenCodeZenEventExtractor(event_config)
 
 
+def _create_openai_event_extractor(
+    _doc_config: DoclingConfig,
+    event_config: Any,
+    _extractor_config: ExtractorConfig
+) -> EventExtractor:
+    """Factory for the OpenAI adapter."""
+    return OpenAIEventExtractor(event_config)
+
+
 EVENT_PROVIDER_REGISTRY: Dict[str, Callable[[DoclingConfig, Any, ExtractorConfig], EventExtractor]] = {
     "langextract": _create_langextract_event_extractor,
     "openrouter": _create_openrouter_event_extractor,
     "opencode_zen": _create_opencode_zen_event_extractor,
+    "openai": _create_openai_event_extractor,
 }
 
 

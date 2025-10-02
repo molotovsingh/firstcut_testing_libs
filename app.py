@@ -128,7 +128,8 @@ def main():
         provider_options = {
             'langextract': 'LangExtract (Google Gemini)',
             'openrouter': 'OpenRouter (Unified API)',
-            'opencode_zen': 'OpenCode Zen (Legal AI)'
+            'opencode_zen': 'OpenCode Zen (Legal AI)',
+            'openai': 'OpenAI (GPT-4o/4-mini)'
         }
 
         # Radio group for provider selection
@@ -140,7 +141,8 @@ def main():
             help="Choose the AI provider for legal event extraction. Credentials required in .env file:\n"
                  "• LangExtract: GEMINI_API_KEY\n"
                  "• OpenRouter: OPENROUTER_API_KEY\n"
-                 "• OpenCode Zen: OPENCODEZEN_API_KEY",
+                 "• OpenCode Zen: OPENCODEZEN_API_KEY\n"
+                 "• OpenAI: OPENAI_API_KEY",
             key="provider_selector"
         )
 

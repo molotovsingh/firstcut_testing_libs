@@ -106,6 +106,17 @@ class OpenCodeZenConfig:
 
 
 @dataclass
+class OpenAIConfig:
+    """Configuration for OpenAI API operations"""
+
+    # API settings
+    api_key: str = field(default_factory=lambda: env_str("OPENAI_API_KEY", ""))
+    base_url: str = field(default_factory=lambda: env_str("OPENAI_BASE_URL", "https://api.openai.com/v1"))
+    model: str = field(default_factory=lambda: env_str("OPENAI_MODEL", "gpt-4o-mini"))
+    timeout: int = field(default_factory=lambda: env_int("OPENAI_TIMEOUT", 60))
+
+
+@dataclass
 class ExtractorConfig:
     """Configuration for extractor selection"""
 
@@ -160,6 +171,8 @@ def load_provider_config(
         event_config = OpenRouterConfig()
     elif provider_key == "opencode_zen":
         event_config = OpenCodeZenConfig()
+    elif provider_key == "openai":
+        event_config = OpenAIConfig()
     else:
         event_config = LangExtractConfig()
         extractor_config.event_extractor = "langextract"

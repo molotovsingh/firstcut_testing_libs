@@ -6,6 +6,8 @@ Ensures consistent pipeline caching, processing, and UI across endpoints
 import streamlit as st
 import pandas as pd
 import logging
+import re
+from pathlib import Path
 from typing import Optional, List
 
 from ..core.legal_pipeline_refactored import LegalEventsPipeline
@@ -127,6 +129,94 @@ def get_pipeline(provider: Optional[str] = None) -> Optional[LegalEventsPipeline
     return st.session_state.get('pipeline')
 
 
+def sanitize_filename(filename: str) -> str:
+    """
+    Sanitize filename by removing or replacing problematic characters
+
+    Args:
+        filename: Original filename
+
+    Returns:
+        Sanitized filename safe for file systems
+    """
+    # Remove extension
+    name = Path(filename).stem
+
+    # Replace spaces and special chars with underscores
+    name = re.sub(r'[^\w\-.]', '_', name)
+
+    # Remove multiple consecutive underscores
+    name = re.sub(r'_+', '_', name)
+
+    # Remove leading/trailing underscores
+    name = name.strip('_')
+
+    return name or "document"
+
+
+def save_results_to_project(
+    df: pd.DataFrame,
+    provider: str,
+    uploaded_files: List,
+    pipeline: Optional[LegalEventsPipeline] = None
+) -> None:
+    """
+    Auto-save results with parser-extractor pair identifier for future comparison
+
+    Saves to: output/docling-{provider}/{doc_name}_{timestamp}.{xlsx,csv,json}
+
+    Args:
+        df: DataFrame with legal events to save
+        provider: Event extractor provider name
+        uploaded_files: List of uploaded file objects (for naming)
+        pipeline: LegalEventsPipeline instance for export functions
+    """
+    if df is None or df.empty:
+        return
+
+    if not uploaded_files:
+        logger.warning("⚠️ Auto-save skipped: No uploaded files info")
+        return
+
+    if pipeline is None:
+        logger.warning("⚠️ Auto-save skipped: Pipeline not available")
+        return
+
+    try:
+        # Create parser-extractor directory structure
+        parser_name = "docling"  # Current parser (future: make configurable)
+        output_dir = Path("output") / f"{parser_name}-{provider}"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Sanitize document name from first uploaded file
+        doc_name = sanitize_filename(uploaded_files[0].name)
+
+        # Create timestamp for uniqueness
+        timestamp = pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')
+        base_name = f"{doc_name}_{timestamp}"
+
+        # Save all three formats for different use cases
+        saved_files = []
+        for fmt in ['xlsx', 'csv', 'json']:
+            try:
+                # Use pipeline's export function (already tested)
+                data = pipeline.export_legal_events_table(df, fmt)
+                file_path = output_dir / f"{base_name}.{fmt}"
+                file_path.write_bytes(data)
+                saved_files.append(f"{fmt}")
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to save {fmt}: {e}")
+
+        if saved_files:
+            logger.info(
+                f"✅ Auto-saved to {output_dir.name}/{base_name}.[{','.join(saved_files)}]"
+            )
+
+    except Exception as e:
+        # Non-blocking: Log error but don't fail the pipeline
+        logger.warning(f"⚠️ Auto-save failed: {e}")
+
+
 def process_documents_with_spinner(uploaded_files, show_subheader: bool = True, provider: Optional[str] = None) -> Optional[pd.DataFrame]:
     """
     Shared processing helper with spinner and status handling
@@ -181,6 +271,10 @@ def process_documents_with_spinner(uploaded_files, show_subheader: bool = True, 
 
             # Store in session state for tab access
             st.session_state['legal_events_df'] = legal_events_df
+
+            # Auto-save results with parser-extractor pair identifier
+            provider_key = provider if provider else "langextract"
+            save_results_to_project(legal_events_df, provider_key, uploaded_files, pipeline)
 
             return legal_events_df
 
