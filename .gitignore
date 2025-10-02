@@ -52,6 +52,9 @@ Thumbs.db
 output/
 *.xlsx
 *.csv
+
+# Track sample_pdf symlinks but not PDFs themselves
+!sample_pdf/famas_dispute
 *.pdf
 
 # Logs

@@ -194,8 +194,10 @@ This architecture enables A/B testing, gradual migrations, and vendor flexibilit
 - Use `.env.example` as template for environment setup
 
 ### Test Resources
-- Sample PDFs for testing: `/Users/aks/docling_langextract_testing/sample_pdf/`
-- Test documents directory: `tests/test_documents/` (for HTML test files)
+- **Sample PDFs for testing**:
+  - `sample_pdf/` - Amrapali case documents (9 PDFs, ~34MB)
+  - `sample_pdf/famas_dispute/` - Famas GmbH arbitration case (symlink to Desktop, 2 PDFs + 4 EML + 1 DOCX)
+- **Test documents directory**: `tests/test_documents/` (HTML test files and sample PDF)
 - Use these sample files for testing document processing functionality
 
 ### Key Configuration Files
