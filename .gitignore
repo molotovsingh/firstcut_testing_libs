@@ -52,10 +52,12 @@ Thumbs.db
 output/
 *.xlsx
 *.csv
-
-# Track sample_pdf symlinks but not PDFs themselves
-!sample_pdf/famas_dispute
 *.pdf
+
+# Exception: Track test PDFs in sample_pdf directory
+!sample_pdf/**/*.pdf
+!sample_pdf/**/*.docx
+!sample_pdf/**/*.eml
 
 # Logs
 *.log

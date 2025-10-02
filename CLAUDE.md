@@ -196,9 +196,10 @@ This architecture enables A/B testing, gradual migrations, and vendor flexibilit
 ### Test Resources
 - **Sample PDFs for testing**:
   - `sample_pdf/` - Amrapali case documents (9 PDFs, ~34MB)
-  - `sample_pdf/famas_dispute/` - Famas GmbH arbitration case (symlink to Desktop, 2 PDFs + 4 EML + 1 DOCX)
+  - `sample_pdf/famas_dispute/` - Famas GmbH arbitration case (2 PDFs + 4 EML + 1 DOCX, ~2.3MB)
 - **Test documents directory**: `tests/test_documents/` (HTML test files and sample PDF)
 - Use these sample files for testing document processing functionality
+- All sample files are tracked in git for reproducible testing across environments
 
 ### Key Configuration Files
 - **Core constants**: `src/core/constants.py` - Contains `LEGAL_EVENTS_PROMPT` and `FIVE_COLUMN_HEADERS`
