@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- `src/core/` steers the Docling→LangExtract pipeline; `extractors/` wraps vendor APIs, while shared helpers sit in `utils/`, `ui/`, and `visualization/` for Streamlit rendering.
+- `src/core/` steers the Docling→legal-events pipeline with pluggable extractors; `src/core/extractor_factory.py` switches among registered providers (LangExtract, OpenRouter, OpenCode Zen). Legacy `extractors/` wraps vendor APIs, while shared helpers sit in `utils/`, `ui/`, and `visualization/` for Streamlit rendering.
 - Top-level `app.py` launches the primary Streamlit UI, and `examples/` houses alternative demos such as `examples/legal_events_app.py`.
 - CLI entry points live in `src/main.py`; generated artifacts and logs land in `output/` for manual review.
 - Supporting references stay in `docs/`, troubleshooting scripts in `scripts/`, and tests plus fixtures in `tests/`.

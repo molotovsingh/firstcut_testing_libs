@@ -160,20 +160,20 @@ The app provides:
 
 ## ⚠️ Important Notes
 
-- This is a **TEST SCRIPT** - no fallback mechanisms
-- Uses **Google's official langextract** from their GitHub repo
-- **Pure testing environment** to evaluate library combination
-- Results help determine if this combination suits paralegal applications
+- This is a **TEST SCRIPT** - guaranteed five-column table output with fallback rows on failures
+- **Multiple event extractors supported**: LangExtract (Gemini), OpenRouter, OpenCode Zen (select via UI)
+- **Pure testing environment** to evaluate parser+extractor combinations
+- Results help determine which combination suits paralegal applications
 
 ## 🤖 Assistant Guardrails
 
 When using Claude (or any other AI helper) with this repository, keep it focused on the documented proof-of-concept scope:
 
-- **Stay on mission:** Only propose or modify code that contributes directly to "documents in → dates out" testing. Skip unrelated refactors, new features, or production hardening.
-- **No fake LangExtract usage:** Do not mark LangExtract as successful unless the real library/API is called. If Gemini access is missing, halt and report the gap—do **not** introduce regex or other fallbacks.
-- **Respect toggles and config:** Any automation must treat the Streamlit checkboxes as the source of truth—no hard-coded overrides.
+- **Stay on mission:** Only propose or modify code that contributes directly to "documents in → legal events table out" testing. Skip unrelated refactors, new features, or production hardening.
+- **No fake extractor usage:** Do not mark event extractors (LangExtract, OpenRouter, OpenCode Zen) as successful unless the real API is called. If API access is missing, halt and report the gap—do **not** introduce regex or other fallbacks.
+- **Respect toggles and config:** Any automation must treat the Streamlit UI selections (provider choice, model selection) as the source of truth—no hard-coded overrides.
 - **Guard sample data:** Avoid inventing or writing back large synthetic documents; use small snippets that illustrate test cases.
-- **Document assumptions:** When the library or APIs are mocked, call that out explicitly so downstream testing knows the difference.
+- **Document assumptions:** When APIs are mocked, call that out explicitly so downstream testing knows the difference.
 
 ## 🔌 This Is How LangExtract Can Be Pinged
 

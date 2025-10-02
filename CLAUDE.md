@@ -4,9 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **proof-of-concept testing environment** for evaluating the combination of Docling (document processing) + LangExtract (legal event extraction) for paralegal applications. The core pipeline: Documents In → Legal Events Out.
+This is a **proof-of-concept testing environment** for evaluating combinations of Docling (document processing) + pluggable event extractors (legal event extraction) for paralegal applications. The core pipeline: Documents In → Legal Events Out.
 
-**Key Goal**: Test if this library combination can reliably extract legal events from various document types.
+**Event Extractors Supported**: LangExtract (Gemini), OpenRouter (unified API with 11+ models), OpenCode Zen (legal AI). The `ExtractorFactory` (`src/core/extractor_factory.py`) selects between providers based on user selection or environment configuration.
+
+**Key Goal**: Test which parser+extractor combination can reliably extract legal events from various document types.
 
 ## Development Commands
 
