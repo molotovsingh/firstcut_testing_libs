@@ -494,6 +494,63 @@ scripts/
 
 ---
 
+### Phase 3.2: Lawyer Review System (Ground Truth Creation) — ⏸️ **TBD**
+
+**Status**: To Be Decided Later (depends on Phase 3 LLM-as-judge performance)
+
+**Goal**: Enable lawyer annotations for building ground truth dataset (if needed for LLM-as-judge calibration)
+
+**Relationship to Phase 3**:
+- Phase 3's LLM-as-judge can evaluate extraction quality WITHOUT ground truth (scores quality directly)
+- Phase 3.2 creates human-validated reference data IF automated evaluation needs calibration
+- **Decision point**: Implement only if LLM-as-judge scores seem unreliable or require validation
+
+**Tasks** (if implemented):
+1. Create `test_results/` directory structure (tracked in git)
+2. Add `src/utils/result_saver.py`:
+   - save_test_result() function
+   - Captures parser + extractor + model metadata
+   - Saves raw Excel (5 columns)
+   - Saves metadata.json with full config
+3. Update Streamlit UI:
+   - Add "Save to Test Results" checkbox in download section
+   - Text input for case name (defaults to first filename)
+   - Success message with result path
+4. Create `scripts/prepare_for_review.py`:
+   - Adds 7 review columns to Excel (✅/❌/⚠️, Quality 1-10, Issues, Notes, Corrections)
+   - Adds data validation (dropdowns)
+   - Adds conditional formatting for quality scores
+5. Create `scripts/process_review.py`:
+   - Reads reviewed Excel
+   - Generates review.json with structured annotations
+   - Updates metadata.json with review status
+   - Calculates approval rate, average quality score, issue frequency
+6. Update .gitignore to track test_results/
+
+**Review Format**:
+- Raw: 5 columns (No, Date, Event Particulars, Citation, Doc Ref)
+- Reviewed: +7 columns (✅/❌, Quality 1-10, Issues, Notes, Fixed Date, Fixed Particulars, Fixed Citation)
+
+**Deliverables** (if implemented):
+- test_results/ directory (tracked)
+- Result saver module
+- Excel review template with validation
+- Review processing script
+- Integration with Streamlit download section
+- Ground truth dataset for LLM-as-judge calibration
+
+**Decision Criteria**:
+- ✅ **Implement** if: LLM-as-judge scores are ambiguous, need human validation, or planning academic research
+- ❌ **Skip** if: LLM-as-judge provides clear quality rankings without ground truth
+- ⏸️ **Defer** if: Phase 3 results are good enough for initial provider comparison
+
+**ROI Analysis**:
+- Cost: ~2-3 hours lawyer time per test case (5-10 cases = 15-30 hours)
+- Benefit: Enables precise automated evaluation of 40+ combinations
+- Tradeoff: High upfront cost, but creates reusable reference dataset
+
+---
+
 ### Phase 3.5: User Selection UI
 
 **Goal**: Enable users to select parser, extractor, and model through Streamlit UI
