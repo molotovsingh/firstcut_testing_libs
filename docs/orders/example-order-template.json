@@ -1,6 +1,7 @@
 {
   "order_id": "example-order-template",
   "priority": "reference",
+  "version": "v1.1",
   "supercontext": {
     "repository": "docling_langextract_testing",
     "mission": "Provide contributors with a sample order that clarifies structure and expectations before tackling real tasks."
@@ -9,6 +10,7 @@
   "execution_instructions": [
     "Read this entire order before touching the codebase.",
     "Follow every step in sequence. Do not skip a step unless it explicitly tells you to note that it is not needed.",
+    "Review the design mantras in CLAUDE.md (start small, ship value, prefer simple patterns) before planning any changes.",
     "If any instruction is unclear or impossible (missing file, command fails repeatedly), stop immediately and escalate for clarification."
   ],
   "tasks": [
@@ -32,11 +34,12 @@
       ]
     },
     {
-      "id": "document-updates",
-      "description": "Call out documentation expectations explicitly every time you draft an order.",
+      "id": "alignment-check",
+      "description": "Call out documentation expectations and guardrails every time you draft an order.",
       "steps": [
         "List which files might need doc updates: README.md, AGENTS.md, docs/*.md, or note 'No documentation updates required' if none apply.",
         "If docs must change, include the exact file path and a short summary of the expected edit (e.g., 'README.md: add OpenRouter instructions to Quick Start').",
+        "Reference any relevant guardrails (security, configuration, design mantras) so executors know what to revisit before coding.",
         "Add a reminder in the order to mention documentation results in the final work summary (updated vs. no-change)."
       ]
     },
@@ -54,7 +57,7 @@
   "acceptance_criteria": [
     "New orders include repository context, explicit goals, sequenced tasks with step-by-step checklists, and measurable acceptance criteria.",
     "Documentation expectations and testing requirements are spelled out so agents know exactly what to update and run.",
-    "Agents reference this template and follow escalation guidance when something is unclear."
+    "Orders reference the repository guardrails (security, configuration, design mantras) and agents follow escalation guidance when something is unclear."
   ],
   "constraints": {
     "what_not_to_do": [

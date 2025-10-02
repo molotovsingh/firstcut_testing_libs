@@ -2,8 +2,14 @@
 
 **Plan ID**: `parser-extractor-matrix-001`
 **Created**: 2025-10-01
-**Status**: Draft
+**Last Revised**: 2025-10-02
+**Status**: Active - Phase 1 in progress
 **Focus**: Pure R&D - finding optimal parser+extractor combinations
+**Approach**: Value-first (providers before infrastructure)
+
+> **⚠️ IMPORTANT**: This plan was significantly revised on 2025-10-02 after critical review.
+> See `docs/plans/REVISION-2025-10-02.md` for complete details on amendments.
+> Key change: **Phase ordering revised from infrastructure-first to value-first**.
 
 ---
 
@@ -222,226 +228,236 @@ scripts/
 
 ## 📋 Implementation Phases
 
-### Phase 1: Config Externalization Foundation
+---
 
-**Goal**: Move settings from `.env` to tracked config files
+## ⚠️ **REVISION NOTES (2025-10-02)**
 
-**Tasks**:
-1. Design config directory structure
-   - Create `config/` directory tree with subdirectories
-   - Separate gateways/ vs direct/ for extractors
-   - Prepare for 8 provider configs
+**Original Plan Issues**:
+- ❌ Waterfall anti-pattern (infrastructure before value)
+- ❌ Config externalization overcomplexity (YAGNI violation)
+- ❌ Parser abstraction premature (N=1 problem)
+- ❌ Resource underestimates (2-3x optimistic)
+- ❌ Circular dependencies (benchmark needs ground truth marked TBD)
 
-2. Create `src/core/config_loader.py`
-   - Load JSON config files from `config/` directory
-   - Support environment variable overrides (API keys only, never in JSON)
-   - Validation and error handling with clear messages
-   - **Migration Strategy**: config_loader.py will supplement existing `src/core/config.py` dataclasses by loading JSON files and using them to populate the existing Config objects (DoclingConfig, OpenRouterConfig, OpenCodeZenConfig, etc.). This preserves backward compatibility while enabling tracked configuration.
-   - Dual-mode support: JSON configs preferred, `.env` fallback for untracked settings
+**Revised Approach**:
+- ✅ Value-first: Deliver 8 providers in 4 weeks (was 5 weeks to infrastructure)
+- ✅ Use existing .env + dataclass pattern (proven with 3 providers)
+- ✅ Defer parser abstraction until 2nd parser exists
+- ✅ Realistic estimates: 3-4 weeks for 5 providers
+- ✅ Manual testing before automation
 
-3. Migrate current setup (gateway APIs):
-   - Docling settings → `config/parsers/docling.json`
-   - LangExtract settings → `config/extractors/gateways/langextract.json`
-   - OpenRouter settings → `config/extractors/gateways/openrouter.json`
-   - OpenCode Zen settings → `config/extractors/gateways/opencode_zen.json`
-   - Baseline combo → `config/combinations/baseline.json`
-
-4. Prepare direct API configs (structure only, no implementation yet):
-   - `config/extractors/direct/openai.json` (placeholder)
-   - `config/extractors/direct/anthropic.json` (placeholder)
-   - `config/extractors/direct/deepseek.json` (placeholder)
-   - `config/extractors/direct/moonshot.json` (placeholder)
-   - `config/extractors/direct/zhipu.json` (placeholder)
-
-5. Create model registries:
-   - `config/models/openrouter-models.json` (11+ tested models with scores)
-   - `config/models/opencode-zen-models.json` (2 tested models with scores)
-   - Placeholder model registries for 5 direct APIs (to be populated in Phase 2.5)
-
-6. Update `.env.example` to show all 8 provider API keys:
-   - Document all 8 API key env vars with descriptions
-   - Mark which providers are implemented vs planned
-   - Include tested model recommendations from existing tests
-
-**Deliverables**:
-- `config/` directory with full structure (gateways + direct)
-- `src/core/config_loader.py` with dual-mode support
-- 3 gateway provider configs (langextract, openrouter, opencode_zen)
-- 5 direct API placeholder configs
-- 2 populated model registries + 5 placeholders
-- Updated `.env.example` with all 8 providers
+**Timeline Comparison**:
+- **Original**: 9 weeks (Phases 1→2→2.5→3→3.5→4)
+- **Revised**: 4 weeks to 8 providers, 6-7 weeks to full automation
 
 ---
 
-### Phase 2: Parser Abstraction
+### Phase 1: Add 5 Direct API Providers ⭐ VALUE DELIVERY
 
-**Goal**: Make parsers swappable like extractors
+**Timeline**: 3-4 weeks | **Cost**: $50-200 testing budget | **Status**: In Progress
 
-**Tasks**:
-1. Formalize `DocumentParser` protocol in `src/core/interfaces.py`
-2. Define standard `ParsedDocument` dataclass
-3. Refactor `DoclingAdapter` to be config-driven
-4. Create `src/core/parser_factory.py` (registry pattern)
-5. Ensure backward compatibility
+**Goal**: Expand from 3 → 8 working providers using proven dataclass pattern
+
+**Strategy**: Use existing `.env` + dataclass pattern (no complex JSON configs)
+
+**Tasks** (per provider, ~3-4 days each):
+
+**Core Integration** (Tasks 1-8):
+1. Create adapter file (follow EventExtractor protocol from `src/core/interfaces.py`)
+2. Add Config dataclass to existing `src/core/config.py` (follow OpenRouterConfig pattern)
+3. Register in `EVENT_PROVIDER_REGISTRY` dict in `src/core/extractor_factory.py`
+4. Add factory function `_create_{provider}_event_extractor()`
+5. Update `load_provider_config()` to handle new provider key
+6. Create diagnostic test script (10-level validation, adapt from `test_openrouter.py` template):
+   - **Reuse Strategy**: Use existing template (Steps 1-6 unchanged: env, config, network, auth)
+   - **Customization**: Adapt Steps 7-10 for provider-specific JSON quirks
+   - **Effort**: 2-3 hours per script (90% template reuse, not written from scratch)
+7. Run model testing (quality/reliability/cost scoring, document in comments)
+8. **Update Streamlit UI incrementally** (`app.py` lines 128-154):
+   - Add new key to existing `provider_options` dict (already has 3 providers)
+   - Update help text to include new API key requirement
+   - Add status indicator function (✅ configured / ⚠️ missing key)
+   - **Note**: Selector UI already exists, just adding options incrementally
+   - **Cache Management**: VALIDATE existing logic (clears `legal_events_df` on provider change) works with new providers - no code changes expected unless regression found
+
+**Operational Requirements** (Tasks 9-13):
+9. Implement rate limiting with exponential backoff (handle 429 errors gracefully)
+10. Add cost tracking (token counting → $/request conversion, cumulative spend logging)
+11. Implement error recovery patterns (retry logic with backoff, clear error messages for auth/network failures)
+12. Write unit tests (adapter initialization, config validation, error path handling)
+13. Write integration test (end-to-end with real API call, verify JSON output schema)
+
+**Documentation** (Tasks 14-15):
+14. Update `.env.example` with new provider section and tested model recommendations
+15. Document provider setup (auth method, base URL, JSON mode quirks, troubleshooting)
+
+**Providers** (in order of ease):
+
+1. **OpenAI** (Week 1) - Easiest, standard OpenAI API with documented JSON mode
+   - **JSON Mode API**: Use `response_format={"type": "json_object"}` (NOT function calling)
+   - **Model Compatibility**: JSON mode requires GPT-4o, GPT-4-turbo, or GPT-3.5-turbo-1106+
+   - **Validation**: Check model name before enabling JSON mode (fail early if incompatible)
+   - **Fallback Strategy**: If legacy model selected, use prompt engineering + manual parsing
+   - **Reference**: https://platform.openai.com/docs/guides/structured-outputs
+   - **Risk**: LOW (instant signup, stable API, native JSON support)
+   - **Mitigation**: Set usage limits ($50 budget), monitor quota, tier-based rate limits apply
+
+2. **Anthropic** (Week 2) - Medium difficulty, requires tool use pattern for structured JSON
+   - **Risk**: LOW (1-2 day approval, stable API, high quality)
+   - **Mitigation**: Apply for API access early, tier-based rate limits, monitor usage
+
+3. **DeepSeek** (Week 3) - Medium difficulty, compare direct API to OpenRouter's distilled version
+   - **Risk**: MEDIUM (instant signup, but rate limits/stability unknown)
+   - **Mitigation**: Test rate limits early, have OpenRouter fallback ready, budget for testing
+4. **Moonshot (Kimi)** (Week 4) - **HIGH RISK**:
+   - ⚠️ Mainland China API - may require VPN for access
+   - ⚠️ Signup requires Chinese phone number verification
+   - ⚠️ JSON structured output not guaranteed (may need fallback parsing)
+   - ⚠️ Documentation primarily in Chinese
+   - **Mitigation**: Account procurement plan, manual JSON parsing fallback, extended testing time
+5. **Zhipu (ChatGLM)** (Week 4) - **HIGH RISK**:
+   - ⚠️ Mainland China API - may require VPN for access
+   - ⚠️ Account approval process (not instant)
+   - ⚠️ JSON mode support uncertain (may need response parsing)
+   - ⚠️ Authentication may require special token formatting
+   - **Mitigation**: Early account signup, fallback to manual review if JSON unreliable, budget extra debugging time
+
+**Provider Risk Assessment Summary**:
+
+| Provider   | Signup      | JSON Support      | Rate Limits    | API Stability | Risk Level | Est. Time |
+|------------|-------------|-------------------|----------------|---------------|------------|-----------|
+| OpenAI     | Instant     | ✅ Native (stable) | 3500 RPM       | High          | **LOW**    | 3 days    |
+| Anthropic  | 1-2 day     | ✅ Tool Use       | Tier-based     | High          | **LOW**    | 3-4 days  |
+| DeepSeek   | Instant     | ✅ Native (new)   | Unknown        | Medium        | **MEDIUM** | 3-4 days  |
+| Moonshot   | Phone + VPN | ⚠️ Uncertain      | Unknown        | Low           | **HIGH**   | 4-5 days  |
+| Zhipu      | Approval    | ⚠️ Uncertain      | Unknown        | Low           | **HIGH**   | 4-5 days  |
+
+**Key Insights**:
+- **Fast Path** (Weeks 1-2): OpenAI + Anthropic = 6-8 days for 2 reliable providers
+- **Medium Risk** (Week 3): DeepSeek = good quality test, compare to OpenRouter
+- **High Risk** (Week 4): Moonshot + Zhipu = budget 8-10 days, may require account procurement workarounds
+- **Total Estimate**: 20-27 days (4-5 weeks realistic, not 3-4 weeks optimistic)
 
 **Deliverables**:
-- Enhanced parser interface
-- Config-driven DoclingAdapter
-- Parser factory with registry
+- ✅ 5 new adapter files (~500 lines each)
+- ✅ 5 Config dataclasses in existing config.py
+- ✅ Factory updated with 8 total providers
+- ✅ 5 diagnostic scripts with 10/10 validation
+- ✅ Streamlit UI with 8-provider selector + status indicators
+- ✅ Updated .env.example with all 8 providers
+- ✅ Rate limiting & retry logic in each adapter
+- ✅ Cost tracking helpers
+- ✅ Error recovery patterns
+- ✅ Unit tests for each adapter
+- ✅ Documentation for each provider
+
+**Success Criteria**:
+- All 8 providers pass diagnostic validation
+- Can process test document with each provider
+- UI shows provider status (✅ configured / ⚠️ missing key)
+- Clear error messages for auth failures
+- Rate limits handled gracefully
+- Cost tracked per request
 
 ---
 
-### Phase 2.5: Direct API Providers Implementation
+### Phase 2: Manual Quality Evaluation ⭐ PROVE VALUE
 
-**Goal**: Add 5 direct API extractors to expand the matrix from 3 → 8 providers
+**Timeline**: 2-3 days | **Cost**: $20-50 API calls | **Status**: Pending
+
+**Goal**: Answer "which provider is best?" with real data before investing in automation
 
 **Tasks**:
-1. **Create adapter files** (follow EventExtractor protocol from `src/core/interfaces.py`):
-
-   - `src/core/openai_adapter.py`:
-     - Class: `OpenAIEventExtractor(EventExtractor)`
-     - Models: GPT-4o, GPT-4o-mini, GPT-4-turbo, GPT-3.5-turbo
-     - Auth: Bearer token via `Authorization` header
-     - JSON mode: `response_format={"type": "json_object"}`
-     - Error handling: Rate limits, token limits, API errors
-
-   - `src/core/anthropic_adapter.py`:
-     - Class: `AnthropicEventExtractor(EventExtractor)`
-     - Models: Claude 3.5 Sonnet, Claude 3 Opus, Claude 3 Haiku
-     - Auth: `x-api-key` header (lowercase)
-     - JSON mode: Structured outputs via tool use pattern
-     - Special handling: Anthropic Messages API format
-
-   - `src/core/deepseek_adapter.py`:
-     - Class: `DeepSeekEventExtractor(EventExtractor)`
-     - Models: DeepSeek V3, DeepSeek R1 (reasoner), DeepSeek Chat
-     - Auth: Bearer token via `Authorization` header
-     - JSON mode: `response_format={"type": "json_object"}`
-     - Notes: Distinct from OpenRouter's deepseek-r1-distill
-
-   - `src/core/moonshot_adapter.py`:
-     - Class: `MoonshotEventExtractor(EventExtractor)`
-     - Models: Kimi K2 (1T params), K2-Instruct, moonshot-v1-128k
-     - Context: Up to 256K tokens (long-context specialist)
-     - Auth: Bearer token via `Authorization` header
-     - JSON mode: Native JSON support
-     - Base URL: https://api.moonshot.cn/v1
-
-   - `src/core/zhipu_adapter.py`:
-     - Class: `ZhipuEventExtractor(EventExtractor)`
-     - Models: GLM-4, GLM-4.5, GLM-4-Air, GLM-4-Flash
-     - Context: Up to 200K tokens
-     - Auth: Bearer token via `Authorization` header (may need special formatting)
-     - JSON mode: Native JSON support
-     - Base URL: https://open.bigmodel.cn/api/paas/v4
-
-2. **Add Config dataclasses** in `src/core/config.py`:
-   ```python
-   @dataclass
-   class OpenAIConfig:
-       api_key: str = field(default_factory=lambda: env_str("OPENAI_API_KEY", ""))
-       base_url: str = field(default_factory=lambda: env_str("OPENAI_BASE_URL", "https://api.openai.com/v1"))
-       model: str = field(default_factory=lambda: env_str("OPENAI_MODEL", "gpt-4o-mini"))
-       timeout: int = field(default_factory=lambda: env_int("OPENAI_TIMEOUT", 60))
-
-   @dataclass
-   class AnthropicConfig:
-       api_key: str = field(default_factory=lambda: env_str("ANTHROPIC_API_KEY", ""))
-       base_url: str = field(default_factory=lambda: env_str("ANTHROPIC_BASE_URL", "https://api.anthropic.com/v1"))
-       model: str = field(default_factory=lambda: env_str("ANTHROPIC_MODEL", "claude-3-haiku-20240307"))
-       timeout: int = field(default_factory=lambda: env_int("ANTHROPIC_TIMEOUT", 60))
-
-   # Similar dataclasses for DeepSeek, Moonshot, Zhipu
-   ```
-
-3. **Register in factory** (`src/core/extractor_factory.py`):
-   - Add 5 factory functions: `_create_openai_event_extractor()`, `_create_anthropic_event_extractor()`, etc.
-   - Add to `EVENT_PROVIDER_REGISTRY` dict (expand from 3 → 8 entries)
-   - Update `load_provider_config()` to handle 8 providers:
-     ```python
-     if provider_key == "openai":
-         event_config = OpenAIConfig()
-     elif provider_key == "anthropic":
-         event_config = AnthropicConfig()
-     # ... etc for all 8 providers
-     ```
-
-4. **Create diagnostic test scripts** (follow `test_opencode_zen.py` pattern):
-
-   Each script implements 10-level validation:
-   1. Environment file check (.env exists)
-   2. API key format validation
-   3. Configuration loading (config dataclass)
-   4. Network connectivity (ping base URL)
-   5. API authentication (verify API key works)
-   6. Model availability (check model exists)
-   7. Minimal chat completion (simple test)
-   8. JSON response format (structured output)
-   9. Rate limit check (inspect headers)
-   10. Full integration test (legal event extraction)
-
-   Create:
-   - `scripts/test_openai.py` (10-level validation)
-   - `scripts/test_anthropic.py` (10-level validation)
-   - `scripts/test_deepseek_direct.py` (10-level validation, distinct from OpenRouter)
-   - `scripts/test_moonshot.py` (10-level validation)
-   - `scripts/test_zhipu.py` (10-level validation)
-
-5. **Test and score models**:
-   - Run comprehensive model testing (follow `test_opencode_zen_models.py` pattern)
-   - Create model testing scripts for each provider (test all available models)
-   - Test quality (0-10 scoring based on extraction accuracy)
-   - Test reliability (0-10 scoring based on output cleanliness)
-   - Document cost per million tokens (input + output)
-   - Populate model registries with test scores
-   - Save detailed test logs
-
-6. **Populate JSON configs** with tested values:
-   - Update `config/extractors/direct/openai.json` with working configuration
-   - Update `config/extractors/direct/anthropic.json` with working configuration
-   - Update `config/extractors/direct/deepseek.json` with working configuration
-   - Update `config/extractors/direct/moonshot.json` with working configuration
-   - Update `config/extractors/direct/zhipu.json` with working configuration
-   - Update `config/models/*.json` with test scores for each provider
-   - Create combination configs for each new provider
-
-7. **Update Streamlit UI** (`app.py` lines 128-154):
-   - Expand provider_options from 3 → 8:
-     ```python
-     provider_options = {
-         'langextract': 'LangExtract (Google Gemini)',
-         'openrouter': 'OpenRouter (Unified API)',
-         'opencode_zen': 'OpenCode Zen (Legal AI)',
-         'openai': 'OpenAI Direct (GPT-4o, GPT-4)',      # NEW
-         'anthropic': 'Anthropic Direct (Claude)',       # NEW
-         'deepseek': 'DeepSeek Direct (R1, V3)',         # NEW
-         'moonshot': 'Moonshot AI (Kimi K2)',            # NEW
-         'zhipu': 'Zhipu AI (ChatGLM/GLM-4)',            # NEW
-     }
-     ```
-   - Update help text to list all 8 API key requirements
-   - Add provider status indicators (✅ configured / ⚠️ missing API key)
+1. Select 1 representative legal document (medium complexity, ~10 pages)
+2. Process with all 8 providers (run in parallel to save time)
+3. Human review of outputs:
+   - Quality score (0-10): Accuracy, completeness, context
+   - Completeness: Events found vs expected (manual count)
+   - Accuracy: False positives and false negatives
+   - Format compliance: Five-Column Table structure
+4. Document findings in comparison report
+5. Identify obvious winners/losers by category
+6. Decide if automation investment is justified
 
 **Deliverables**:
-- 5 new adapter files (480-670 lines each, ~2,800 lines total)
-- 5 new Config dataclasses in `src/core/config.py`
-- Factory registration for 8 total providers
-- 5 diagnostic test scripts (10-level validation each, ~500 lines each)
-- 5 comprehensive model testing scripts
-- Model registries with quality/reliability/cost scores
-- 5 populated direct API JSON configs
-- 5 combination config files
-- Test logs documenting all results
-- Updated Streamlit UI with 8 provider selector
+- ✅ Test document selected (tracked in git, ~10 pages)
+- ✅ 8 provider outputs (Excel files in `test_results/manual_comparison/`)
+- ✅ Comparison report: `docs/benchmarks/2025-10-XX-manual-comparison.md`
+- ✅ Quality rankings table (provider × quality/cost/speed)
+- ✅ Cost analysis ($/document actual spend)
+- ✅ Speed analysis (seconds measured)
+- ✅ Recommendation matrix by use case:
+  - **Quality Champion**: Best accuracy/completeness (high-stakes work)
+  - **Cost Champion**: Best $/document (high-volume processing)
+  - **Speed Champion**: Fastest processing (real-time apps)
+  - **Free Tier Champion**: Best quality at $0 cost (prototyping)
+  - **Balanced Champion**: Best quality/cost/speed tradeoff (production default)
 
-**Acceptance Criteria**:
-- ✅ All 5 new adapters pass 10/10 diagnostic checks
-- ✅ Factory can create all 8 extractors successfully
-- ✅ Model registries populated with quality/reliability/cost scores
-- ✅ Test logs document successful integration for each provider
-- ✅ All configs follow JSON schema from Phase 1
-- ✅ Streamlit UI shows all 8 providers in radio buttons
-- ✅ Can process documents with each of the 8 providers
+**Success Criteria**:
+- Can answer: "Which provider should we use for [use case]?"
+- Have data to justify automation investment decision
+- Documented methodology for future comparisons
+- Clear cost/quality tradeoffs understood
+
+---
+
+### Phase 3: Simple Benchmark Config System (Optional)
+
+**Timeline**: 2-3 days | **Cost**: $0 | **Status**: Pending
+
+**Goal**: Version-control benchmark results (NOT provider configs - those use .env)
+
+**Tasks**:
+1. Create `config/benchmarks/` directory
+2. Define simple JSON schema for benchmark results
+3. Create script to save results: `scripts/save_benchmark.py`
+4. Update .gitignore to track benchmark results
+
+**JSON Schema Example**:
+```json
+{
+  "benchmark_id": "manual-2025-10-02",
+  "date": "2025-10-02",
+  "providers_tested": ["langextract", "openrouter", "openai", "anthropic", "deepseek", "moonshot", "zhipu", "opencode_zen"],
+  "test_document": "sample_pdf/famas_dispute/Award.pdf",
+  "document_pages": 15,
+  "results": {
+    "langextract": {
+      "quality_score": 9,
+      "cost_usd": 0.018,
+      "time_seconds": 12.5,
+      "events_found": 14
+    },
+    "openai": {
+      "quality_score": 10,
+      "cost_usd": 0.015,
+      "time_seconds": 8.2,
+      "events_found": 15
+    }
+  },
+  "champions": {
+    "quality": "openai",
+    "cost": "deepseek",
+    "speed": "openrouter",
+    "free_tier": "opencode_zen",
+    "balanced": "openai"
+  },
+  "notes": "Manual evaluation by legal expert. OpenAI best overall quality, DeepSeek best cost."
+}
+```
+
+**Deliverables**:
+- ✅ `config/benchmarks/` directory structure
+- ✅ JSON schema documented (simple, no complex infrastructure)
+- ✅ `scripts/save_benchmark.py` helper script
+- ✅ `.gitignore` updated to track benchmark results
+- ✅ Example benchmark file with real data
+
+**Success Criteria**:
+- Benchmark results are version-controlled
+- Easy to compare results across time
+- No complex config_loader or provider configs needed
+- Results can be manually created or script-generated
 
 ---
 

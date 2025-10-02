@@ -19,7 +19,7 @@ DEFAULT_NO_DATE = "Date not available"
 LEGAL_EVENTS_PROMPT = """Extract legal events from this document. For each event, you must return exactly four JSON keys:
 
 1. "event_particulars" - REQUIRED: Provide a complete description (2-8 sentences as appropriate) of what happened, including relevant context, parties involved, procedural background, implications, and any important details. Use verbatim or paraphrased text from the document. NEVER leave this field empty.
-2. "citation" - Legal citation or reference (use empty string "" if no verbatim legal reference exists)
+2. "citation" - Exact legal authority cited in the event (statute, rule, case, docket, etc.). Copy the verbatim reference from the document. Use empty string "" when no explicit legal citation appears.
 3. "document_reference" - Leave as empty string "" (will be filled automatically with source filename)
 4. "date" - Specific date mentioned (use empty string "" if no date is found)
 

@@ -67,3 +67,4 @@ claudechatreferance/
 claude-conversations/
 *conversation*.txt
 *conversation*.md
+.npm-cache/
