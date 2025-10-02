@@ -335,6 +335,23 @@ def display_legal_events_table(legal_events_df: pd.DataFrame) -> None:
         avg_chars = legal_events_df[FIVE_COLUMN_HEADERS[2]].str.len().mean()  # Event Particulars
         st.metric("Avg Event Detail Length", f"{avg_chars:.0f} chars")
 
+    # Display performance timing metrics if available
+    if "Docling_Seconds" in legal_events_df.columns and "Extractor_Seconds" in legal_events_df.columns:
+        st.subheader("⏱️  Performance Metrics")
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            avg_docling = legal_events_df["Docling_Seconds"].mean()
+            st.metric("Avg Docling Time", f"{avg_docling:.3f}s")
+
+        with col2:
+            avg_extractor = legal_events_df["Extractor_Seconds"].mean()
+            st.metric("Avg Extractor Time", f"{avg_extractor:.3f}s")
+
+        with col3:
+            avg_total = legal_events_df["Total_Seconds"].mean()
+            st.metric("Avg Total Time", f"{avg_total:.3f}s")
+
 
 def create_download_section(legal_events_df: pd.DataFrame, provider: Optional[str] = None) -> None:
     """

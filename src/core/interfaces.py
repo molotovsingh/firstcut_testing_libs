@@ -18,6 +18,15 @@ class ExtractedDocument:
 
 
 @dataclass
+class TimingMetrics:
+    """Performance timing metrics for document processing"""
+    docling_seconds: float
+    extractor_seconds: float
+    total_seconds: float
+    document_name: str
+
+
+@dataclass
 class EventRecord:
     """Standardized event record for legal events pipeline"""
     number: int

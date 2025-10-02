@@ -7,6 +7,7 @@ import pandas as pd
 import tempfile
 import logging
 import os
+import time
 from pathlib import Path
 from typing import List, Dict, Tuple, Optional
 
@@ -196,13 +197,25 @@ class LegalEventsPipeline:
         Returns:
             List of records (guaranteed at least one)
         """
+        # Check if performance timing is enabled
+        timing_enabled = os.getenv("ENABLE_PERFORMANCE_TIMING", "true").lower() == "true"
+        docling_seconds = None
+        extractor_seconds = None
+        total_seconds = None
+
         try:
             # Save file
             file_path = self.file_handler.save_uploaded_file(uploaded_file, temp_path)
             file_extension = self.file_handler.get_file_extension(file_path)
 
-            # Use document extractor adapter for text extraction
+            # Use document extractor adapter for text extraction (with timing)
+            if timing_enabled:
+                start_docling = time.perf_counter()
+
             doc_result = self.document_extractor.extract(file_path)
+
+            if timing_enabled:
+                docling_seconds = time.perf_counter() - start_docling
 
             # If document extraction failed completely
             if not doc_result.plain_text.strip():
@@ -215,22 +228,45 @@ class LegalEventsPipeline:
                     "document_reference": uploaded_file.name
                 }]
 
-            # Use event extractor adapter for legal events extraction
+            # Use event extractor adapter for legal events extraction (with timing)
             # Create metadata for event extraction, including document name
             extraction_metadata = doc_result.metadata.copy()
             extraction_metadata["document_name"] = uploaded_file.name
+
+            if timing_enabled:
+                start_extractor = time.perf_counter()
+
             event_records = self.event_extractor.extract_events(doc_result.plain_text, extraction_metadata)
 
+            if timing_enabled:
+                extractor_seconds = time.perf_counter() - start_extractor
+                total_seconds = docling_seconds + extractor_seconds
+
+                # Log performance timing
+                logger.info(
+                    f"⏱️  {uploaded_file.name}: Docling={docling_seconds:.3f}s, "
+                    f"Extractor={extractor_seconds:.3f}s, Total={total_seconds:.3f}s"
+                )
+
             # Convert EventRecord instances to dict format expected by TableFormatter
+            # CRITICAL: Preserve timing data in attributes
             legal_events = []
             for event_record in event_records:
-                legal_events.append({
+                event_dict = {
                     "number": event_record.number,
                     "date": event_record.date,
                     "event_particulars": event_record.event_particulars,
                     "citation": event_record.citation,
                     "document_reference": event_record.document_reference
-                })
+                }
+
+                # Add timing columns if timing is enabled and available
+                if timing_enabled and docling_seconds is not None:
+                    event_dict["docling_seconds"] = docling_seconds
+                    event_dict["extractor_seconds"] = extractor_seconds
+                    event_dict["total_seconds"] = total_seconds
+
+                legal_events.append(event_dict)
 
             logger.info(f"✅ Extracted {len(legal_events)} events from {uploaded_file.name} using adapters")
             return legal_events
@@ -238,13 +274,21 @@ class LegalEventsPipeline:
         except Exception as e:
             logger.error(f"❌ Single file processing failed for {uploaded_file.name}: {e}")
             # Return fallback record
-            return [{
+            fallback = {
                 "number": 1,
                 "date": DEFAULT_NO_DATE,
                 "event_particulars": f"Processing error for {uploaded_file.name}: {str(e)}",
                 "citation": "No citation available (processing error)",
                 "document_reference": uploaded_file.name
-            }]
+            }
+
+            # Add timing even for failures if available
+            if timing_enabled and docling_seconds is not None:
+                fallback["docling_seconds"] = docling_seconds
+                fallback["extractor_seconds"] = extractor_seconds if extractor_seconds is not None else 0.0
+                fallback["total_seconds"] = total_seconds if total_seconds is not None else docling_seconds
+
+            return [fallback]
 
     def export_legal_events_table(self, df: pd.DataFrame, format_type: str = "xlsx") -> bytes:
         """

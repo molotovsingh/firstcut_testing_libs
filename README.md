@@ -165,6 +165,102 @@ The app provides:
 - **Pure testing environment** to evaluate parser+extractor combinations
 - Results help determine which combination suits paralegal applications
 
+## ⏱️ Performance Metrics
+
+The system includes **built-in performance timing** to measure document processing speed and identify bottlenecks in the extraction pipeline.
+
+### How It Works
+
+Performance timing captures execution duration for two critical phases:
+1. **Docling Extraction** - PDF parsing, OCR, and text extraction time
+2. **Event Extraction** - LLM API call and legal event extraction time
+
+Timing is captured **per-document** (all events from the same document share identical timing values).
+
+### Enabling/Disabling Timing
+
+Control timing instrumentation via the `ENABLE_PERFORMANCE_TIMING` environment variable:
+
+```bash
+# Enable timing (default for development/testing)
+ENABLE_PERFORMANCE_TIMING=true
+
+# Disable timing (recommended for production to reduce overhead)
+ENABLE_PERFORMANCE_TIMING=false
+```
+
+**Default**: `true` (timing enabled)
+
+### Where Timing Data Appears
+
+#### 1. **Console Logs**
+When timing is enabled, the pipeline logs performance metrics for each document:
+
+```
+⏱️  Answer to Request for Arbitration.pdf: Docling=2.341s, Extractor=3.567s, Total=5.908s
+```
+
+#### 2. **Streamlit UI**
+The web interface displays **Performance Metrics** with average timing across all processed documents:
+
+- **Avg Docling Time** - Average PDF parsing duration
+- **Avg Extractor Time** - Average LLM extraction duration
+- **Avg Total Time** - End-to-end processing time
+
+#### 3. **Export Files (CSV/JSON/XLSX)**
+All exports include three additional timing columns when timing is enabled:
+
+| Column Name | Description | Example Value |
+|------------|-------------|---------------|
+| `Docling_Seconds` | Docling parsing time | 2.341 |
+| `Extractor_Seconds` | LLM extraction time | 3.567 |
+| `Total_Seconds` | Combined processing time | 5.908 |
+
+**Example CSV Export**:
+```csv
+No,Date,Event Particulars,Citation,Document Reference,Docling_Seconds,Extractor_Seconds,Total_Seconds
+1,2024-09-21,Lease agreement entered,RTA 2010,lease.pdf,1.234,2.567,3.801
+2,2024-10-01,Security deposit paid,RTA 2010,lease.pdf,1.234,2.567,3.801
+```
+
+### Expected Performance
+
+Timing varies based on document size, complexity, OCR requirements, and API latency:
+
+| Document Size | Docling Time | Extractor Time | Total Time |
+|--------------|--------------|----------------|------------|
+| Small PDF (~15 pages) | 1-3s | 2-5s | 3-8s |
+| Medium PDF (~50 pages) | 3-10s | 3-8s | 6-18s |
+| Large PDF (100+ pages) | 10-30s | 5-15s | 15-45s |
+
+**Factors Affecting Performance**:
+- **OCR Requirement**: Documents needing OCR take significantly longer
+- **Table Complexity**: `DOCLING_TABLE_MODE=ACCURATE` increases processing time
+- **Provider Latency**: LLM API response times vary by provider and model
+- **Document Format**: PDF requires more processing than TXT/HTML
+
+### Interpreting Timing Data
+
+Use timing metrics to:
+- **Identify Bottlenecks**: If `Docling_Seconds` dominates, consider faster parsing settings
+- **Optimize Provider Selection**: Compare extractor performance across providers
+- **Capacity Planning**: Estimate processing time for large document batches
+- **Cost Analysis**: Longer extraction times often correlate with higher API costs
+
+### Timing Precision
+
+- Uses `time.perf_counter()` for high-resolution timing (millisecond precision)
+- Displays 3 decimal places (e.g., `2.341s`)
+- Timing is document-level, not per-event (all events from same doc share timing)
+
+### When Timing is Disabled
+
+When `ENABLE_PERFORMANCE_TIMING=false`:
+- No timing capture or logging
+- Exports contain only the core 5 columns (no timing columns)
+- Streamlit UI shows no performance metrics section
+- Eliminates timing overhead for production use
+
 ## 🤖 Assistant Guardrails
 
 When using Claude (or any other AI helper) with this repository, keep it focused on the documented proof-of-concept scope:

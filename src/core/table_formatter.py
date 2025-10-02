@@ -52,22 +52,35 @@ class TableFormatter:
                     elif field == "document_reference":
                         df[field] = "Unknown document"
 
-            # Select and reorder columns to match internal field order
-            df = df[INTERNAL_FIELDS]
+            # Preserve timing columns if present (performance metrics)
+            timing_columns = ["docling_seconds", "extractor_seconds", "total_seconds"]
+            timing_data = {}
+            for col in timing_columns:
+                if col in df.columns:
+                    timing_data[col] = df[col]
+
+            # Select and reorder core columns to match internal field order
+            core_df = df[INTERNAL_FIELDS].copy()
 
             # Rename columns to display headers
-            df.columns = FIVE_COLUMN_HEADERS
+            core_df.columns = FIVE_COLUMN_HEADERS
+
+            # Add timing columns back if they were present
+            for col, data in timing_data.items():
+                # Convert column name to display format (capitalize words)
+                display_col = col.replace("_", " ").title().replace(" ", "_")
+                core_df[display_col] = data
 
             # Sort by number column
-            df = df.sort_values(FIVE_COLUMN_HEADERS[0]).reset_index(drop=True)
+            core_df = core_df.sort_values(FIVE_COLUMN_HEADERS[0]).reset_index(drop=True)
 
-            # Validate final format
-            if not TableFormatter.validate_dataframe_format(df):
+            # Validate final format (allows extra columns beyond the core 5)
+            if not TableFormatter.validate_dataframe_format(core_df):
                 logger.error("❌ DataFrame validation failed after normalization")
                 return TableFormatter.create_fallback_dataframe("DataFrame validation failed")
 
-            logger.info(f"✅ Normalized {len(df)} records to standard format")
-            return df
+            logger.info(f"✅ Normalized {len(core_df)} records to standard format")
+            return core_df
 
         except Exception as e:
             logger.error(f"❌ Failed to normalize records: {e}")
@@ -76,7 +89,8 @@ class TableFormatter:
     @staticmethod
     def validate_dataframe_format(df: pd.DataFrame) -> bool:
         """
-        Validate that DataFrame matches required five-column format
+        Validate that DataFrame contains required five-column format
+        (allows extra columns like timing metrics)
 
         Args:
             df: DataFrame to validate
@@ -87,9 +101,15 @@ class TableFormatter:
         if df is None or df.empty:
             return False
 
-        # Check column names match exactly
-        if list(df.columns) != FIVE_COLUMN_HEADERS:
-            logger.error(f"❌ Column mismatch. Expected: {FIVE_COLUMN_HEADERS}, Got: {list(df.columns)}")
+        # Check that core columns exist and are in correct order at the start
+        df_columns = list(df.columns)
+        if len(df_columns) < len(FIVE_COLUMN_HEADERS):
+            logger.error(f"❌ Missing core columns. Expected at least: {FIVE_COLUMN_HEADERS}, Got: {df_columns}")
+            return False
+
+        # Check first 5 columns match the required headers
+        if df_columns[:5] != FIVE_COLUMN_HEADERS:
+            logger.error(f"❌ Core columns mismatch. Expected first 5: {FIVE_COLUMN_HEADERS}, Got: {df_columns[:5]}")
             return False
 
         # Check required columns have data
