@@ -5,10 +5,12 @@ description = "Testing docling + langextract combination for paralegal date extr
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "anthropic>=0.40.0",
     "docling>=0.1.0",
     "extract-msg>=0.55.0",
     "langextract",
     "numpy<2",
+    "openai>=1.0.0",
     "openpyxl>=3.1.5",
     "pandas>=2.3.2",
     "plotly>=6.3.0",

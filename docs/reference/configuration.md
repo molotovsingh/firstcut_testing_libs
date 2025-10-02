@@ -68,7 +68,7 @@ Central place for environment variables that control provider selection and beha
 
 ## Provider Comparison
 
-### Implemented Providers (4/8)
+### Implemented Providers (5/8)
 
 #### LangExtract (Google Gemini) - Default
 - **Status**: ✅ Implemented
@@ -147,19 +147,43 @@ All models scored 10/10 for quality and reliability with `response_format` suppo
 **Diagnostic Script**: Run `uv run python scripts/test_openai.py` for 10-level validation
 **Test Results**: ✅ 10/10 diagnostic checks passed (2025-10-02)
 
-### Planned Providers (4/8) - Phase 1 Implementation
+#### Anthropic (Direct API) ⭐ NEW
+- **Status**: ✅ Implemented (2025-10-02)
+- **Models**: Claude 3.5 Sonnet, Claude 3 Opus, Claude 3 Haiku
+- **Quality**: 10/10 (validated with diagnostic script across all 3 models)
+- **Best For**: Highest quality extraction, tool use pattern for JSON
 
-#### Anthropic Direct API
-- **Status**: ⏳ Planned (Week 2)
-- **Models**: Claude 3.5 Sonnet, Opus, Haiku
-- **Expected Quality**: 10/10
-- **Expected Cost**: $0.25/M (Haiku) to $75.00/M (Opus output)
+**Model Pricing & Features**:
+| Model | Cost ($/M in + out) | JSON Mode | Rate Limits | Best For |
+|-------|---------------------|-----------|-------------|----------|
+| `claude-3-haiku-20240307` | $0.25 + $1.25 | ✅ Tool Use | 50 req/60K tok | **Recommended Default** |
+| `claude-3-5-sonnet-20241022` | $3.00 + $15.00 | ✅ Tool Use | 50 req/48K tok | Premium quality |
+| `claude-3-opus-20240229` | $15.00 + $75.00 | ✅ Tool Use | 50 req/24K tok | Top tier |
+| `claude-3-sonnet-20240229` | $3.00 + $15.00 | ✅ Tool Use | Tier-based | Legacy option |
 
-| Model | Cost ($/M in + out) | Expected Quality | Notes |
-|-------|---------------------|------------------|-------|
-| `claude-3-haiku-20240307` | $0.25 + $1.25 | 10/10 | Fastest, affordable |
-| `claude-3-5-sonnet-20241022` | $3.00 + $15.00 | 10/10 | Highest intelligence |
-| `claude-3-opus-20240229` | $15.00 + $75.00 | 10/10 | Most capable |
+**Setup Guide**:
+1. Get API key from https://console.anthropic.com/settings/keys
+2. Add to `.env`: `ANTHROPIC_API_KEY=sk-ant-api03-...`
+3. Set provider: `EVENT_EXTRACTOR=anthropic`
+4. Optionally set model: `ANTHROPIC_MODEL=claude-3-haiku-20240307`
+
+**Tool Use Pattern (JSON Enforcement)**:
+- ✅ All Claude models support tool calling for structured JSON output
+- Uses `tool_choice={"type": "tool", "name": "extract_legal_events"}` to enforce schema
+- Different from OpenAI's native JSON mode - tool calling provides stronger guarantees
+- No hallucinations - tool input schema validates before returning results
+
+**Troubleshooting**:
+- **401 Unauthorized**: Invalid API key → verify at https://console.anthropic.com/settings/keys
+- **429 Rate Limit**: Exponential backoff retry (3 attempts) built-in → check tier limits
+- **404 Not Found**: Wrong base_url → use `https://api.anthropic.com` (no `/v1` suffix)
+- **Timeout**: Increase `ANTHROPIC_TIMEOUT` from default 60s
+- **Tool use errors**: Ensure model is recent (all Claude 3+ models support tools)
+
+**Diagnostic Script**: Run `uv run python scripts/test_anthropic.py` for 10-level validation
+**Test Results**: ✅ 10/10 diagnostic checks passed for Haiku, Sonnet, and Opus (2025-10-02)
+
+### Planned Providers (3/8) - Phase 1 Implementation
 
 #### DeepSeek Direct API
 - **Status**: ⏳ Planned (Week 3)

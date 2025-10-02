@@ -23,7 +23,7 @@ def get_pipeline(provider: Optional[str] = None) -> Optional[LegalEventsPipeline
     Ensures environment validation runs once and same instance is reused
 
     Args:
-        provider: Event extractor provider ('langextract', 'openrouter', 'opencode_zen')
+        provider: Event extractor provider ('langextract', 'openrouter', 'opencode_zen', 'openai', 'anthropic')
                   If None, uses environment default (EVENT_EXTRACTOR env var)
 
     Returns:
@@ -76,6 +76,10 @@ def get_pipeline(provider: Optional[str] = None) -> Optional[LegalEventsPipeline
                 error_msg += "\n\n**Required**: Set `OPENROUTER_API_KEY` in your `.env` file"
             elif 'opencode' in provider_name.lower() or 'zen' in provider_name.lower():
                 error_msg += "\n\n**Required**: Set `OPENCODEZEN_API_KEY` in your `.env` file"
+            elif 'openai' in provider_name.lower():
+                error_msg += "\n\n**Required**: Set `OPENAI_API_KEY` in your `.env` file"
+            elif 'anthropic' in provider_name.lower():
+                error_msg += "\n\n**Required**: Set `ANTHROPIC_API_KEY` in your `.env` file"
             elif 'langextract' in provider_name.lower() or 'default' in provider_name.lower():
                 error_msg += "\n\n**Required**: Set `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) in your `.env` file"
 
@@ -104,6 +108,10 @@ def get_pipeline(provider: Optional[str] = None) -> Optional[LegalEventsPipeline
                 error_msg += "\n\n**Required**: Set `OPENROUTER_API_KEY` in your `.env` file"
             elif 'opencode' in provider_name.lower() or 'zen' in provider_name.lower():
                 error_msg += "\n\n**Required**: Set `OPENCODEZEN_API_KEY` in your `.env` file"
+            elif 'openai' in provider_name.lower():
+                error_msg += "\n\n**Required**: Set `OPENAI_API_KEY` in your `.env` file"
+            elif 'anthropic' in provider_name.lower():
+                error_msg += "\n\n**Required**: Set `ANTHROPIC_API_KEY` in your `.env` file"
             elif 'langextract' in provider_name.lower():
                 error_msg += "\n\n**Required**: Set `GEMINI_API_KEY` in your `.env` file"
 

@@ -117,6 +117,17 @@ class OpenAIConfig:
 
 
 @dataclass
+class AnthropicConfig:
+    """Configuration for Anthropic API operations"""
+
+    # API settings
+    api_key: str = field(default_factory=lambda: env_str("ANTHROPIC_API_KEY", ""))
+    base_url: str = field(default_factory=lambda: env_str("ANTHROPIC_BASE_URL", "https://api.anthropic.com"))
+    model: str = field(default_factory=lambda: env_str("ANTHROPIC_MODEL", "claude-3-haiku-20240307"))
+    timeout: int = field(default_factory=lambda: env_int("ANTHROPIC_TIMEOUT", 60))
+
+
+@dataclass
 class ExtractorConfig:
     """Configuration for extractor selection"""
 
@@ -173,6 +184,8 @@ def load_provider_config(
         event_config = OpenCodeZenConfig()
     elif provider_key == "openai":
         event_config = OpenAIConfig()
+    elif provider_key == "anthropic":
+        event_config = AnthropicConfig()
     else:
         event_config = LangExtractConfig()
         extractor_config.event_extractor = "langextract"
