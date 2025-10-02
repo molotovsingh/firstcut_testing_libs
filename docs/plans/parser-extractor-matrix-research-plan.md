@@ -25,17 +25,27 @@ Systematically test parser+extractor combinations to find optimal configuration 
 - PyMuPDF (future)
 - Marker (future)
 
-### Extractors to Test (Text → Events)
-- **LangExtract** (Gemini 2.0 Flash)
-- **OpenRouter** with tested models:
-  - `openai/gpt-4o-mini` (9/10, $0.15/M) ← Current
-  - `deepseek/deepseek-r1-distill-llama-70b` (10/10, $0.03/M)
-  - `anthropic/claude-3-haiku` (10/10, $0.25/M)
-  - `openai/gpt-3.5-turbo` (10/10, $0.50/M)
-  - +7 more tested models
+### Extractor Types to Test (Text → Events)
+- **LangExtract** (Gemini 2.0 Flash) - Default provider
+- **OpenRouter** (Unified API gateway) - 11+ tested models
+- **OpenCode Zen** (Legal AI gateway) - 2 tested models
+
+**Note**: OpenRouter and OpenCode Zen are single extractor types with multiple **model configurations**, not separate extractors per model.
+
+### OpenRouter Model Configurations (tested 2025-10-01)
+- `openai/gpt-4o-mini` (9/10 quality, $0.15/M)
+- `deepseek/deepseek-r1-distill-llama-70b` (10/10 quality, $0.03/M) - Budget champion
+- `anthropic/claude-3-haiku` (10/10 quality, $0.25/M)
+- `openai/gpt-3.5-turbo` (10/10 quality, $0.50/M)
+- +7 more models with 10/10 scores
+
+### OpenCode Zen Model Configurations (tested 2025-10-02)
+- `grok-code` (8/10 quality, $0.50/M)
+- `code-supernova` (8/10 quality, FREE) - Free tier champion
 
 ### Initial Matrix Size
-5 parsers × 4 extractors = **20 combinations to benchmark**
+5 parsers × 3 extractor types = **15 baseline combinations**
+(Expandable to 50+ with model configuration variations)
 
 ---
 
@@ -72,9 +82,10 @@ config/
 │       }
 │
 ├── combinations/
-│   ├── baseline.json         # Current: Docling + GPT-4o Mini
-│   ├── fast-cheap.json       # Docling + DeepSeek R1
-│   ├── premium.json          # Future: Best parser + GPT-4o
+│   ├── baseline.json         # Shipped default: Docling + LangExtract (Gemini)
+│   ├── openrouter-gpt4o.json # Docling + OpenRouter (GPT-4o Mini)
+│   ├── fast-cheap.json       # Docling + OpenRouter (DeepSeek R1 Distill)
+│   ├── free-tier.json        # Docling + OpenCode Zen (code-supernova)
 │   └── experimental/         # Testing new combos
 │
 └── benchmarks/
@@ -111,8 +122,10 @@ scripts/
    - Load JSON config files
    - Support environment variable overrides (API keys only)
    - Validation and error handling
+   - **Migration Strategy**: config_loader.py will supplement existing `src/core/config.py` dataclasses by loading JSON files and using them to populate the existing Config objects (DoclingConfig, OpenRouterConfig, etc.). This preserves backward compatibility while enabling tracked configuration.
 3. Migrate current setup:
    - Docling settings → `config/parsers/docling.json`
+   - LangExtract settings → `config/extractors/langextract.json`
    - OpenRouter settings → `config/extractors/openrouter.json`
    - Baseline combo → `config/combinations/baseline.json`
 4. Update `.env.example` to show only API keys
@@ -177,9 +190,11 @@ scripts/
    - Create ground truth annotations
    - Document expected events
 2. Benchmark current combinations:
+   - Docling + LangExtract (Gemini 2.0 Flash) - Shipped default
    - Docling + OpenRouter (GPT-4o Mini)
    - Docling + OpenRouter (DeepSeek R1 Distill)
-   - Docling + LangExtract (Gemini)
+   - Docling + OpenCode Zen (grok-code)
+   - Docling + OpenCode Zen (code-supernova) - Free tier
 3. Document results and identify champion
 
 **Deliverables**:
@@ -262,21 +277,22 @@ scripts/
 ```json
 {
   "combination_id": "baseline",
-  "description": "Current production setup as of 2025-10-01",
+  "description": "Shipped default configuration (Docling + LangExtract)",
   "parser": {
     "type": "docling",
     "config_file": "config/parsers/docling.json"
   },
   "extractor": {
-    "type": "openrouter",
-    "config_file": "config/extractors/openrouter.json",
-    "model_override": "openai/gpt-4o-mini"
+    "type": "langextract",
+    "config_file": "config/extractors/langextract.json",
+    "model": "gemini-2.0-flash"
   },
   "metadata": {
     "created_by": "research",
     "created_date": "2025-10-01",
     "tested_date": null,
-    "status": "active"
+    "status": "active",
+    "notes": "This is the actual shipped default (EVENT_EXTRACTOR=langextract)"
   }
 }
 ```
@@ -325,7 +341,9 @@ mkdir -p config/{parsers,extractors,models,combinations,benchmarks}
 # 2. Run baseline benchmark
 uv run python scripts/benchmark_combinations.py --config config/combinations/baseline.json
 
-# 3. View results
+# 3. View results (benchmark script creates timestamped file + latest symlink)
+cat config/benchmarks/2025-10-0X_baseline.json
+# Or use the latest symlink:
 cat config/benchmarks/latest.json
 ```
 
@@ -397,8 +415,10 @@ See `scripts/test_fallback_models.py` results:
 - 11 models tested with perfect 10/10 score
 - Full results: `scripts/fallback_models_test.log`
 
-### Diagnostic Scripts Created
+### Diagnostic Scripts Created (2025-10-01 to 2025-10-02)
 - `scripts/test_openrouter.py` - OpenRouter validation (10 checks)
 - `scripts/test_deepseek.py` - DeepSeek-specific testing (10 checks)
 - `scripts/test_all_models.py` - Multi-model comparison (5 models)
-- `scripts/test_fallback_models.py` - Comprehensive testing (18 models)
+- `scripts/test_fallback_models.py` - Comprehensive testing (18 OpenRouter models)
+- `scripts/test_opencode_zen.py` - OpenCode Zen validation (10 checks)
+- `scripts/test_opencode_zen_models.py` - Comprehensive testing (4 OpenCode Zen models)
