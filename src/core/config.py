@@ -58,6 +58,7 @@ class DoclingConfig:
 
     # OCR and processing options
     do_ocr: bool = field(default_factory=lambda: env_bool("DOCLING_DO_OCR", True))
+    auto_ocr_detection: bool = field(default_factory=lambda: env_bool("DOCLING_AUTO_OCR_DETECTION", True))
     do_table_structure: bool = field(default_factory=lambda: env_bool("DOCLING_DO_TABLE_STRUCTURE", True))
     table_mode: Literal["FAST", "ACCURATE"] = field(default_factory=lambda: env_str("DOCLING_TABLE_MODE", "FAST"))
     do_cell_matching: bool = field(default_factory=lambda: env_bool("DOCLING_DO_CELL_MATCHING", True))

@@ -7,11 +7,51 @@ import logging
 from pathlib import Path
 from typing import List
 
+import fitz  # PyMuPDF
+
 from .interfaces import DocumentExtractor, ExtractedDocument
 from .document_processor import DocumentProcessor
 from .config import DoclingConfig
 
 logger = logging.getLogger(__name__)
+
+
+def is_scanned_pdf(file_path: Path, sample_pages: int = 3, text_threshold: int = 50) -> bool:
+    """
+    Detect if a PDF is scanned (image-based) by checking for embedded text.
+
+    Args:
+        file_path: Path to the PDF file
+        sample_pages: Number of pages to check (default: 3)
+        text_threshold: Minimum text length to consider as digital (default: 50 chars)
+
+    Returns:
+        True if PDF appears to be scanned (no text layer), False if digital
+
+    Note:
+        This is a heuristic check - scans with poor OCR or minimal text may
+        be misclassified. Checks first N pages for performance.
+    """
+    try:
+        doc = fitz.open(file_path)
+        pages_checked = min(sample_pages, len(doc))
+
+        for page_num in range(pages_checked):
+            page = doc[page_num]
+            text = page.get_text().strip()
+
+            # If we find substantial text, it's a digital PDF
+            if len(text) > text_threshold:
+                doc.close()
+                return False
+
+        # No substantial text found in sampled pages - likely scanned
+        doc.close()
+        return True
+
+    except Exception as e:
+        logger.warning(f"PDF detection failed for {file_path.name}: {e}, assuming digital")
+        return False  # Default to digital (fast path) on error
 
 
 class DoclingDocumentExtractor:
@@ -26,11 +66,12 @@ class DoclingDocumentExtractor:
         """
         self.config = config
         self.processor = DocumentProcessor(config)
+        self.ocr_processor = None  # Lazy-init cache for OCR-enabled processor
         logger.info("✅ DoclingDocumentExtractor initialized")
 
     def extract(self, file_path: Path) -> ExtractedDocument:
         """
-        Extract text using configured DocumentProcessor
+        Extract text using configured DocumentProcessor with optional OCR auto-detection
 
         Args:
             file_path: Path to the document file
@@ -42,8 +83,37 @@ class DoclingDocumentExtractor:
             # Get file extension from path
             file_type = file_path.suffix.lstrip('.')
 
+            # Determine if OCR should be used for this specific document
+            needs_ocr = self.config.do_ocr  # Default: use config setting
+            ocr_auto_detected = False
+
+            # Auto-detect OCR requirement for PDFs
+            if (file_type.lower() == 'pdf' and
+                self.config.auto_ocr_detection and
+                not self.config.do_ocr):  # Only auto-detect if OCR is currently disabled
+
+                if is_scanned_pdf(file_path):
+                    needs_ocr = True
+                    ocr_auto_detected = True
+                    logger.info(f"🔍 OCR auto-detected for scanned PDF: {file_path.name}")
+
+            # Create processor with appropriate OCR setting
+            if needs_ocr and not self.config.do_ocr:
+                # Need OCR but current processor doesn't have it - use cached OCR processor
+                if self.ocr_processor is None:
+                    # Lazy initialization: create OCR-enabled processor once
+                    from copy import deepcopy
+                    ocr_config = deepcopy(self.config)
+                    ocr_config.do_ocr = True
+                    self.ocr_processor = DocumentProcessor(ocr_config)
+                    logger.info("🔧 Created cached OCR processor for scanned PDFs")
+                processor = self.ocr_processor
+            else:
+                # Use default processor
+                processor = self.processor
+
             # Use DocumentProcessor to get Docling result
-            text, extraction_method = self.processor.extract_text(file_path, file_type)
+            text, extraction_method = processor.extract_text(file_path, file_type)
 
             if extraction_method == "failed" or not text.strip():
                 # Return empty strings instead of error flags
@@ -54,6 +124,8 @@ class DoclingDocumentExtractor:
                         "file_path": str(file_path),
                         "file_type": file_type,
                         "extraction_method": "failed",
+                        "needs_ocr": needs_ocr,
+                        "ocr_auto_detected": ocr_auto_detected,
                         "config": {
                             "do_ocr": self.config.do_ocr,
                             "table_mode": self.config.table_mode,
@@ -64,8 +136,8 @@ class DoclingDocumentExtractor:
 
             # For Docling extractions, get both markdown and plain text
             if extraction_method == "docling":
-                # Re-run Docling to get both formats
-                result = self.processor.converter.convert(file_path)
+                # Re-run Docling to get both formats (use appropriate processor)
+                result = processor.converter.convert(file_path)
                 markdown = result.document.export_to_markdown()
                 plain_text = result.document.export_to_text()
             else:
@@ -80,6 +152,8 @@ class DoclingDocumentExtractor:
                     "file_path": str(file_path),
                     "file_type": file_type,
                     "extraction_method": extraction_method,
+                    "needs_ocr": needs_ocr,
+                    "ocr_auto_detected": ocr_auto_detected,
                     "config": {
                         "do_ocr": self.config.do_ocr,
                         "table_mode": self.config.table_mode,
@@ -98,6 +172,8 @@ class DoclingDocumentExtractor:
                     "file_path": str(file_path),
                     "file_type": file_path.suffix.lstrip('.'),
                     "extraction_method": "failed",
+                    "needs_ocr": locals().get('needs_ocr', self.config.do_ocr),
+                    "ocr_auto_detected": locals().get('ocr_auto_detected', False),
                     "error": str(e)
                 }
             )
