@@ -72,7 +72,11 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def run_docling(file_path: Path, do_ocr: bool) -> ExtractionResult:
-    overrides = {"DOCLING_DO_OCR": "true" if do_ocr else "false"}
+    # Disable auto-detection to test explicit OCR on/off behavior
+    overrides = {
+        "DOCLING_DO_OCR": "true" if do_ocr else "false",
+        "DOCLING_AUTO_OCR_DETECTION": "false"
+    }
     original: Dict[str, Optional[str]] = {}
     for key, value in overrides.items():
         original[key] = os.environ.get(key)
@@ -135,7 +139,7 @@ def run_claude_vision(file_path: Path) -> ExtractionResult:
             "role": "user",
             "content": [
                 {
-                    "type": "input_text",
+                    "type": "text",
                     "text": f"Page {idx}: Extract all text verbatim."
                 },
                 {
@@ -157,7 +161,7 @@ def run_claude_vision(file_path: Path) -> ExtractionResult:
     elapsed = time.perf_counter() - start
     text_chunks = []
     for item in response.content:
-        if item.type == "output_text":
+        if item.type == "text":
             text_chunks.append(item.text)
     text = "\n".join(text_chunks)
     return ExtractionResult(
