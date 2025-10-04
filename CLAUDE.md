@@ -23,10 +23,14 @@ This is a **proof-of-concept testing environment** for evaluating combinations o
 - **OpenRouter** (Unified API) - 11+ tested models from OpenAI, Anthropic, DeepSeek
 - **OpenCode Zen** (Legal AI) - Specialized legal extraction models
 - **OpenAI** (Direct API) - GPT-4o, GPT-4o-mini via OpenAI SDK
+- **Anthropic** (Direct API) - Claude 3.5 Sonnet, Claude 3 Haiku via Anthropic SDK
+- **DeepSeek** (Direct API) - DeepSeek-Chat via OpenAI-compatible API
 
 **Provider Selection**: Use Streamlit UI dropdown (overrides environment) or set `EVENT_EXTRACTOR` environment variable.
 
 **Architecture**: Registry pattern in `extractor_factory.py` - add new providers by implementing `EventExtractor` interface and registering in `EVENT_PROVIDER_REGISTRY`.
+
+**Phase 1 Status (Week 3)**: 6 providers integrated (LangExtract, OpenRouter, OpenCode Zen, OpenAI, Anthropic, DeepSeek). Target: 8 providers by Week 4.
 
 **Key Goal**: Test which parser+extractor combination can reliably extract legal events from various document types.
 
@@ -163,7 +167,7 @@ These map to the **Five-Column Table**:
 ### Configuration System
 
 #### Provider Selection
-- `EVENT_EXTRACTOR`: Choose provider (`langextract`|`openrouter`|`opencode_zen`|`openai`)
+- `EVENT_EXTRACTOR`: Choose provider (`langextract`|`openrouter`|`opencode_zen`|`openai`|`anthropic`|`deepseek`)
 - Streamlit UI selector overrides environment variable
 - Each provider requires provider-specific API key (see `.env.example`)
 
@@ -176,6 +180,10 @@ These map to the **Five-Column Table**:
 | `OPENROUTER_MODEL` | `openai/gpt-4o-mini` | Budget: `deepseek/deepseek-r1-distill-llama-70b` ($0.03/M) |
 | `OPENAI_API_KEY` | _(required for OpenAI)_ | Direct OpenAI API access |
 | `OPENAI_MODEL` | `gpt-4o-mini` | GPT-4o or GPT-4o-mini |
+| `ANTHROPIC_API_KEY` | _(required for Anthropic)_ | Direct Anthropic API access |
+| `ANTHROPIC_MODEL` | `claude-3-haiku-20240307` | Claude 3.5 or Claude 3 models |
+| `DEEPSEEK_API_KEY` | _(required for DeepSeek)_ | Direct DeepSeek API access |
+| `DEEPSEEK_MODEL` | `deepseek-chat` | DeepSeek-Chat model |
 | `DOCLING_DO_OCR` | `true` | Enable/disable OCR |
 | `DOCLING_TABLE_MODE` | `FAST` | `FAST` or `ACCURATE` |
 | `DOCLING_ACCELERATOR_DEVICE` | `cpu` | `cpu`, `cuda`, or `mps` |
@@ -316,6 +324,8 @@ This architecture enables A/B testing, gradual migrations, and vendor flexibilit
 - `src/core/openrouter_adapter.py` - Multi-provider unified API (11+ models)
 - `src/core/opencode_zen_adapter.py` - Legal AI specialized extraction
 - `src/core/openai_adapter.py` - Direct OpenAI API integration
+- `src/core/anthropic_adapter.py` - Direct Anthropic API integration
+- `src/core/deepseek_adapter.py` - Direct DeepSeek API integration (OpenAI-compatible)
 
 ### Testing Infrastructure
 - `tests/run_all_tests.py` - Master test suite runner with reporting

@@ -59,6 +59,14 @@ output/
 !sample_pdf/**/*.docx
 !sample_pdf/**/*.eml
 
+# Exception: Track benchmark results (JSONs and CSVs are valuable artifacts)
+!config/benchmarks/**/*.json
+!config/benchmarks/**/*.csv
+
+# Lock files (editor artifacts)
+.~lock*
+*~lock*
+
 # Future database location for pipeline registry
 .registry/
 
@@ -75,3 +83,6 @@ claude-conversations/
 # Temporary test files (for development only)
 test_metadata_integration.py
 test_excel_metadata_sheet.py
+
+# Test results directory (temporary outputs from benchmarking and OCR tests)
+test_results/

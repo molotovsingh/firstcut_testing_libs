@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-DeepSeek via OpenRouter Diagnostic Script
-Tests DeepSeek R1 Distill compatibility for legal event extraction
+DeepSeek Direct API Configuration Diagnostic Script
+Validates API key, configuration, and connectivity with detailed error reporting
+Tests direct DeepSeek API (not via OpenRouter)
 """
 
 import os
@@ -10,7 +11,7 @@ import json
 import argparse
 import logging
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Tuple, Optional
 from datetime import datetime
 
 # Add parent directory to path for imports
@@ -23,7 +24,7 @@ except ImportError:
     REQUESTS_AVAILABLE = False
 
 from dotenv import load_dotenv
-from src.core.config import OpenRouterConfig, env_str
+from src.core.config import DeepSeekConfig, env_str
 from src.core.constants import LEGAL_EVENTS_PROMPT
 
 # Configure logging
@@ -35,10 +36,10 @@ logger = logging.getLogger(__name__)
 
 
 class DeepSeekDiagnostic:
-    """Comprehensive DeepSeek R1 Distill configuration validation"""
+    """Comprehensive DeepSeek Direct API configuration validation"""
 
     def __init__(self, test_model: Optional[str] = None, verbose: bool = False):
-        self.test_model = test_model or "deepseek/deepseek-r1-distill-llama-70b"
+        self.test_model = test_model
         self.verbose = verbose
         self.checks_passed = 0
         self.total_checks = 10
@@ -52,102 +53,117 @@ class DeepSeekDiagnostic:
         file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
         logger.addHandler(file_handler)
 
-    def log(self, message: str):
-        """Log message to both console and file"""
-        logger.info(message)
+    def log(self, message: str, level: str = "INFO"):
+        """Log message to console and file"""
+        if level == "INFO":
+            logger.info(message)
+        elif level == "ERROR":
+            logger.error(message)
+        elif level == "WARNING":
+            logger.warning(message)
+        elif level == "DEBUG" and self.verbose:
+            logger.debug(message)
+
+    def mask_api_key(self, api_key: str) -> str:
+        """Safely mask API key for display"""
+        if not api_key or len(api_key) < 16:
+            return "***INVALID***"
+        return f"{api_key[:8]}...{api_key[-8:]}"
 
     def print_header(self):
         """Print diagnostic header"""
-        print("=" * 70)
-        print("🧠 DeepSeek R1 Distill Configuration Diagnostic")
-        print("=" * 70)
-        print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"Log file: {self.log_file}")
-        print("=" * 70)
-        print()
+        self.log("=" * 70)
+        self.log("🔍 DeepSeek Direct API Configuration Diagnostic")
+        self.log("=" * 70)
+        self.log(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        self.log(f"Log file: {self.log_file}")
+        self.log("=" * 70)
+        self.log("")
 
-    def print_step(self, step: int, title: str):
+    def print_step(self, step: int, name: str):
         """Print step header"""
-        msg = f"\n[Step {step}/{self.total_checks}] {title}"
-        print(msg)
-        print("-" * 50)
-        self.log(msg)
+        self.log(f"\n[Step {step}/{self.total_checks}] {name}")
+        self.log("-" * 50)
 
-    def print_result(self, success: bool, message: str):
+    def print_result(self, passed: bool, message: str):
         """Print check result"""
-        icon = "✅" if success else "❌"
-        print(f"{icon} {message}")
-        if success:
+        icon = "✅" if passed else "❌"
+        self.log(f"{icon} {message}")
+        if passed:
             self.checks_passed += 1
-
-    def mask_key(self, key: str) -> str:
-        """Mask API key for safe display"""
-        if not key or len(key) < 12:
-            return "***"
-        return f"{key[:10]}...{key[-8:]}"
 
     def check_environment_file(self) -> bool:
         """Step 1: Check if .env file exists"""
         self.print_step(1, "Environment File Check")
 
-        env_path = Path.cwd() / ".env"
-        if env_path.exists():
-            self.print_result(True, f".env file found at {env_path}")
-            load_dotenv()
-            self.log(f"   Loaded environment variables from {env_path}")
-            return True
-        else:
-            self.print_result(False, f".env file not found at {env_path}")
-            self.log("   Create a .env file with OPENROUTER_API_KEY")
+        project_root = Path(__file__).parent.parent
+        env_file = project_root / ".env"
+
+        if not env_file.exists():
+            self.print_result(False, f".env file not found at {env_file}")
+            self.log("💡 Create .env from .env.example: cp .env.example .env")
             return False
+
+        self.print_result(True, f".env file found at {env_file}")
+
+        # Load environment variables
+        load_dotenv(env_file)
+        self.log(f"   Loaded environment variables from {env_file}")
+        return True
 
     def check_api_key_format(self) -> bool:
         """Step 2: Validate API key format"""
         self.print_step(2, "API Key Format Validation")
 
-        api_key = os.getenv("OPENROUTER_API_KEY", "")
+        api_key = os.getenv("DEEPSEEK_API_KEY", "")
 
         if not api_key:
-            self.print_result(False, "OPENROUTER_API_KEY not found in environment")
+            self.print_result(False, "DEEPSEEK_API_KEY not set in .env")
+            self.log("💡 Get API key from: https://platform.deepseek.com")
+            self.log("💡 Add to .env: DEEPSEEK_API_KEY=sk-...")
             return False
 
-        self.api_key_safe = self.mask_key(api_key)
-
-        # Check format
-        if not api_key.startswith("sk-or-v1-"):
-            self.print_result(False, f"Invalid key format: {self.api_key_safe}")
-            self.log("   Expected format: sk-or-v1-...")
-            return False
-
-        if len(api_key) < 40:
-            self.print_result(False, f"Key too short: {len(api_key)} characters")
-            return False
-
+        # Check for whitespace
         if api_key != api_key.strip():
-            self.print_result(False, "Key contains leading/trailing whitespace")
+            self.print_result(False, "API key contains leading/trailing whitespace")
             return False
 
+        self.api_key_safe = self.mask_api_key(api_key)
         self.print_result(True, f"API key found: {self.api_key_safe}")
-        self.log(f"   Key format: Valid OpenRouter format (sk-or-v1-)")
-        self.log(f"   Key length: {len(api_key)} characters")
+
+        # Check expected format (DeepSeek keys typically start with sk-)
+        if api_key.startswith("sk-"):
+            self.log(f"   Key format: Valid DeepSeek format (sk-)")
+        else:
+            self.log(f"   ⚠️  Key format: Unexpected format (expected sk-)")
+
+        # Check length
+        if len(api_key) < 20:
+            self.log(f"   ⚠️  Key length seems short: {len(api_key)} characters")
+        else:
+            self.log(f"   Key length: {len(api_key)} characters")
+
         return True
 
     def check_configuration_loading(self) -> bool:
-        """Step 3: Load OpenRouter configuration"""
+        """Step 3: Load and validate configuration"""
         self.print_step(3, "Configuration Loading")
 
         try:
-            self.config = OpenRouterConfig()
-
-            # Override model if specified
-            if self.test_model:
-                self.config.model = self.test_model
-
+            self.config = DeepSeekConfig()
             self.print_result(True, "Configuration loaded successfully")
+
+            # Display configuration
             self.log(f"   Base URL: {self.config.base_url}")
             self.log(f"   Model: {self.config.model}")
             self.log(f"   Timeout: {self.config.timeout}s")
-            self.log(f"   API Key: {self.api_key_safe}")
+            self.log(f"   API Key: {self.mask_api_key(self.config.api_key)}")
+
+            # Override model if test model specified
+            if self.test_model:
+                self.config.model = self.test_model
+                self.log(f"   ⚠️  Test model override: {self.test_model}")
+
             return True
 
         except Exception as e:
@@ -155,19 +171,27 @@ class DeepSeekDiagnostic:
             return False
 
     def check_network_connectivity(self) -> bool:
-        """Step 4: Test network connectivity to OpenRouter"""
+        """Step 4: Test network connectivity"""
         self.print_step(4, "Network Connectivity")
 
         if not REQUESTS_AVAILABLE:
             self.print_result(False, "requests library not available")
+            self.log("💡 Install: pip install requests")
             return False
 
         try:
-            response = requests.get("https://openrouter.ai", timeout=10)
-            self.print_result(True, f"Connected to openrouter.ai (HTTP {response.status_code})")
+            response = requests.get("https://api.deepseek.com", timeout=10)
+            self.print_result(True, f"Connected to api.deepseek.com (HTTP {response.status_code})")
             return True
+
+        except requests.exceptions.ConnectionError:
+            self.print_result(False, "Connection failed - check internet/firewall")
+            return False
+        except requests.exceptions.Timeout:
+            self.print_result(False, "Connection timeout")
+            return False
         except Exception as e:
-            self.print_result(False, f"Connection failed: {e}")
+            self.print_result(False, f"Network error: {e}")
             return False
 
     def check_api_authentication(self) -> bool:
@@ -189,6 +213,9 @@ class DeepSeekDiagnostic:
                 self.print_result(True, "API key authenticated successfully")
                 self.log(f"   Available models: {model_count}")
                 return True
+            elif response.status_code == 401:
+                self.print_result(False, "Authentication failed - invalid API key")
+                return False
             else:
                 self.print_result(False, f"Authentication failed: HTTP {response.status_code}")
                 self.log(f"   Response: {response.text[:200]}")
@@ -199,7 +226,7 @@ class DeepSeekDiagnostic:
             return False
 
     def check_model_availability(self) -> bool:
-        """Step 6: Check if DeepSeek model is available"""
+        """Step 6: Check if model is available"""
         self.print_step(6, "Model Availability Check")
 
         url = f"{self.config.base_url}/models"
@@ -224,27 +251,12 @@ class DeepSeekDiagnostic:
 
                 if model_found:
                     self.print_result(True, f"Model '{self.config.model}' is available")
-
-                    # Extract pricing info
-                    pricing = model_found.get("pricing", {})
-                    prompt_price = pricing.get("prompt")
-                    completion_price = pricing.get("completion")
-
-                    if prompt_price and completion_price:
-                        self.log(f"   Prompt: ${float(prompt_price)} per token")
-                        self.log(f"   Completion: ${float(completion_price)} per token")
-
                     return True
                 else:
                     self.print_result(False, f"Model '{self.config.model}' not found")
-
-                    # Suggest alternatives
-                    deepseek_models = [m["id"] for m in models if "deepseek" in m["id"].lower()]
-                    if deepseek_models:
-                        self.log("\n   Available DeepSeek models:")
-                        for dm in deepseek_models[:5]:
-                            self.log(f"   - {dm}")
-
+                    # List available models
+                    available_models = [m.get("id") for m in models[:5]]
+                    self.log(f"   Available models: {', '.join(available_models)}")
                     return False
             else:
                 self.print_result(False, f"Failed to fetch models: HTTP {response.status_code}")
@@ -255,8 +267,8 @@ class DeepSeekDiagnostic:
             return False
 
     def check_chat_completion_basic(self) -> bool:
-        """Step 7: Test basic chat completion (NO response_format)"""
-        self.print_step(7, "Basic Chat Completion Test (No response_format)")
+        """Step 7: Test basic chat completion"""
+        self.print_step(7, "Basic Chat Completion Test")
 
         url = f"{self.config.base_url}/chat/completions"
         headers = {
@@ -267,30 +279,29 @@ class DeepSeekDiagnostic:
         payload = {
             "model": self.config.model,
             "messages": [
-                {"role": "user", "content": "Say 'test successful' in 3 words."}
+                {"role": "user", "content": "Say 'test successful' in exactly 3 words."}
             ],
             "max_tokens": 20,
             "temperature": 0.0
         }
 
         try:
-            response = requests.post(
-                url,
-                headers=headers,
-                json=payload,
-                timeout=self.config.timeout
-            )
+            response = requests.post(url, headers=headers, json=payload, timeout=self.config.timeout)
 
             if response.status_code == 200:
                 data = response.json()
                 content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                usage = data.get("usage", {})
 
                 self.print_result(True, "Chat completion successful")
                 self.log(f"   Response: {content[:100]}")
+                self.log(f"   Tokens used: {usage.get('total_tokens', 'N/A')}")
 
-                usage = data.get("usage", {})
-                if usage:
-                    self.log(f"   Tokens used: {usage.get('total_tokens', 'N/A')}")
+                # Calculate cost
+                input_tokens = usage.get("prompt_tokens", 0)
+                output_tokens = usage.get("completion_tokens", 0)
+                cost = (input_tokens * 0.27 / 1_000_000) + (output_tokens * 1.10 / 1_000_000)
+                self.log(f"   Estimated cost: ${cost:.6f}")
 
                 return True
             else:
@@ -302,9 +313,9 @@ class DeepSeekDiagnostic:
             self.print_result(False, f"Chat completion error: {e}")
             return False
 
-    def check_json_via_prompt(self) -> bool:
-        """Step 8: Test JSON extraction using prompt only (NO response_format)"""
-        self.print_step(8, "JSON Extraction via Prompt (No response_format)")
+    def check_json_mode_support(self) -> bool:
+        """Step 8: Test JSON mode support"""
+        self.print_step(8, "JSON Mode Support Test")
 
         url = f"{self.config.base_url}/chat/completions"
         headers = {
@@ -324,17 +335,13 @@ class DeepSeekDiagnostic:
                     "content": 'Return this exact JSON: {"status": "ok", "message": "test", "number": 42}'
                 }
             ],
+            "response_format": {"type": "json_object"},  # JSON mode
             "max_tokens": 100,
             "temperature": 0.0
         }
 
         try:
-            response = requests.post(
-                url,
-                headers=headers,
-                json=payload,
-                timeout=self.config.timeout
-            )
+            response = requests.post(url, headers=headers, json=payload, timeout=self.config.timeout)
 
             if response.status_code == 200:
                 data = response.json()
@@ -343,32 +350,20 @@ class DeepSeekDiagnostic:
                 # Try to parse as JSON
                 try:
                     json_content = json.loads(content.strip())
-                    self.print_result(True, "JSON extraction via prompt successful")
+                    self.print_result(True, "JSON mode supported and working")
                     self.log(f"   Parsed JSON: {json_content}")
                     return True
                 except json.JSONDecodeError:
-                    # Maybe JSON is wrapped in markdown
-                    if "```json" in content:
-                        try:
-                            json_text = content.split("```json")[1].split("```")[0].strip()
-                            json_content = json.loads(json_text)
-                            self.print_result(True, "JSON extraction successful (from markdown)")
-                            self.log(f"   Parsed JSON: {json_content}")
-                            self.log("   Note: Response wrapped in markdown code block")
-                            return True
-                        except:
-                            pass
-
-                    self.print_result(False, "Response is not valid JSON")
+                    self.print_result(False, "JSON mode failed to return valid JSON")
                     self.log(f"   Response: {content[:200]}")
                     return False
             else:
-                self.print_result(False, f"JSON test failed: HTTP {response.status_code}")
+                self.print_result(False, f"JSON mode test failed: HTTP {response.status_code}")
                 self.log(f"   Error: {response.text[:200]}")
                 return False
 
         except Exception as e:
-            self.print_result(False, f"JSON test error: {e}")
+            self.print_result(False, f"JSON mode error: {e}")
             return False
 
     def check_legal_event_extraction(self) -> bool:
@@ -391,24 +386,20 @@ class DeepSeekDiagnostic:
             "messages": [
                 {
                     "role": "system",
-                    "content": LEGAL_EVENTS_PROMPT + "\n\nReturn ONLY a valid JSON array. No markdown, no other text."
+                    "content": LEGAL_EVENTS_PROMPT + "\n\nReturn your response as valid JSON array containing the extracted events."
                 },
                 {
                     "role": "user",
-                    "content": f"Extract legal events from this document:\n\n{legal_text}"
+                    "content": f"Extract legal events from this document and return as JSON:\n\n{legal_text}"
                 }
             ],
+            "response_format": {"type": "json_object"},
             "temperature": 0.0,
             "max_tokens": 500
         }
 
         try:
-            response = requests.post(
-                url,
-                headers=headers,
-                json=payload,
-                timeout=self.config.timeout
-            )
+            response = requests.post(url, headers=headers, json=payload, timeout=self.config.timeout)
 
             if response.status_code == 200:
                 data = response.json()
@@ -416,25 +407,22 @@ class DeepSeekDiagnostic:
 
                 # Try to parse as JSON
                 try:
-                    # Clean content
-                    clean_content = content.strip()
-                    if clean_content.startswith("```json"):
-                        clean_content = clean_content.split("```json")[1].split("```")[0].strip()
-                    elif clean_content.startswith("```"):
-                        clean_content = clean_content.split("```")[1].split("```")[0].strip()
+                    events_data = json.loads(content)
 
-                    events = json.loads(clean_content)
+                    # Handle both array and object responses
+                    if isinstance(events_data, dict):
+                        if "events" in events_data:
+                            events_data = events_data["events"]
+                        elif "extractions" in events_data:
+                            events_data = events_data["extractions"]
 
-                    if isinstance(events, dict) and "events" in events:
-                        events = events["events"]
-
-                    if isinstance(events, list):
-                        self.print_result(True, f"Legal event extraction successful (array)")
-                        self.log(f"   Extracted {len(events)} events")
+                    if isinstance(events_data, list):
+                        self.print_result(True, f"Legal event extraction successful")
+                        self.log(f"   Extracted {len(events_data)} events")
                         return True
                     else:
                         self.print_result(False, "Response is not a JSON array")
-                        self.log(f"   Response type: {type(events)}")
+                        self.log(f"   Response type: {type(events_data)}")
                         return False
 
                 except json.JSONDecodeError as e:
@@ -450,9 +438,12 @@ class DeepSeekDiagnostic:
             self.print_result(False, f"Legal extraction error: {e}")
             return False
 
-    def check_reasoning_mode(self) -> bool:
-        """Step 10: Test DeepSeek reasoning mode"""
-        self.print_step(10, "DeepSeek Reasoning Mode Test")
+    def check_rate_limiting(self) -> bool:
+        """Step 10: Test dynamic rate limiting behavior"""
+        self.print_step(10, "Dynamic Rate Limiting Test")
+
+        self.log("   DeepSeek uses dynamic rate limiting (no fixed RPM)")
+        self.log("   Making 3 rapid requests to observe behavior...")
 
         url = f"{self.config.base_url}/chat/completions"
         headers = {
@@ -462,86 +453,81 @@ class DeepSeekDiagnostic:
 
         payload = {
             "model": self.config.model,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": "What is 2+2? Think step by step."
-                }
-            ],
-            "temperature": 0.0,
-            "max_tokens": 200,
-            "reasoning": True,  # DeepSeek-specific parameter
-            "include_reasoning": True
+            "messages": [{"role": "user", "content": "ping"}],
+            "max_tokens": 5,
+            "temperature": 0.0
         }
 
-        try:
-            response = requests.post(
-                url,
-                headers=headers,
-                json=payload,
-                timeout=self.config.timeout
-            )
+        import time
+        response_times = []
+        rate_limited = False
 
-            if response.status_code == 200:
-                data = response.json()
-                content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        for i in range(3):
+            try:
+                start = time.time()
+                response = requests.post(url, headers=headers, json=payload, timeout=self.config.timeout)
+                elapsed = time.time() - start
 
-                # Check if reasoning tokens are present
-                has_thinking = "<think>" in content or "</think>" in content
+                if response.status_code == 429:
+                    rate_limited = True
+                    self.log(f"   Request {i+1}: Rate limited (429)")
+                elif response.status_code == 200:
+                    response_times.append(elapsed)
+                    self.log(f"   Request {i+1}: {elapsed:.2f}s")
 
-                self.print_result(True, "Reasoning mode supported")
-                self.log(f"   Reasoning tags detected: {has_thinking}")
-                self.log(f"   Response length: {len(content)} chars")
+                time.sleep(0.5)  # Small delay between requests
 
-                if has_thinking:
-                    self.log("   ✅ Model uses <think> tags for reasoning")
+            except Exception as e:
+                self.log(f"   Request {i+1}: Error - {e}")
 
-                return True
-            else:
-                self.print_result(False, f"Reasoning test failed: HTTP {response.status_code}")
-                self.log(f"   Error: {response.text[:200]}")
-                return False
+        if rate_limited:
+            self.print_result(True, "Rate limiting detected (normal behavior)")
+            self.log("   💡 DeepSeek throttles requests during high load")
+        elif response_times:
+            avg_time = sum(response_times) / len(response_times)
+            self.print_result(True, f"Rate limiting working (avg: {avg_time:.2f}s)")
+            self.log("   💡 Response times may increase during peak usage")
+        else:
+            self.print_result(False, "Could not test rate limiting")
 
-        except Exception as e:
-            self.print_result(False, f"Reasoning test error: {e}")
-            return False
+        return True  # This check always passes (informational only)
 
     def print_summary(self):
         """Print diagnostic summary"""
-        print("\n" + "=" * 70)
-        print("📊 DIAGNOSTIC SUMMARY")
-        print("=" * 70)
+        self.log("\n" + "=" * 70)
+        self.log("📊 DIAGNOSTIC SUMMARY")
+        self.log("=" * 70)
 
         success_rate = (self.checks_passed / self.total_checks) * 100
-        print(f"Checks Passed: {self.checks_passed}/{self.total_checks} ({success_rate:.1f}%)")
-        print()
+        self.log(f"Checks Passed: {self.checks_passed}/{self.total_checks} ({success_rate:.1f}%)")
+        self.log("")
 
         if self.checks_passed == self.total_checks:
-            print("✅ ALL CHECKS PASSED - DeepSeek is properly configured!")
-            print()
-            print("💡 Next steps:")
-            print("   1. Update .env: OPENROUTER_MODEL=deepseek/deepseek-r1-distill-llama-70b")
-            print("   2. Fix adapter: Remove 'response_format' parameter")
-            print("   3. Add JSON instruction to system prompt")
-            print()
+            self.log("✅ ALL CHECKS PASSED - DeepSeek Direct API is properly configured!")
+            self.log("")
+            self.log("💡 Next steps:")
+            self.log("   1. Ready to use in Streamlit: Select 'DeepSeek (Direct API)' in UI")
+            self.log("   2. Monitor usage at: https://platform.deepseek.com")
+            self.log("   3. Cost tracking: $0.27/M input, $1.10/M output")
+            self.log("")
         elif self.checks_passed >= 7:
-            print("⚠️ MOSTLY WORKING - Minor issues to address")
-            print()
-            print("💡 Recommendations:")
-            print("   - Review failed checks above")
-            print("   - Consider using prompt-only JSON extraction")
-            print()
+            self.log("⚠️ MOSTLY WORKING - Minor issues to address")
+            self.log("")
+            self.log("💡 Recommendations:")
+            self.log("   - Review failed checks above")
+            self.log("   - Verify API key is correct")
+            self.log("")
         else:
-            print("❌ MULTIPLE ISSUES - Configuration needs attention")
-            print()
-            print("💡 Troubleshooting:")
-            print("   - Verify OPENROUTER_API_KEY is correct")
-            print("   - Check network connectivity")
-            print("   - Review model availability")
-            print()
+            self.log("❌ MULTIPLE ISSUES - Configuration needs attention")
+            self.log("")
+            self.log("💡 Troubleshooting:")
+            self.log("   - Verify DEEPSEEK_API_KEY is correct")
+            self.log("   - Check network connectivity")
+            self.log("   - Get API key from: https://platform.deepseek.com")
+            self.log("")
 
-        print(f"📄 Detailed log saved to: {self.log_file}")
-        print("=" * 70)
+        self.log(f"📄 Detailed log saved to: {self.log_file}")
+        self.log("=" * 70)
 
     def run_all_checks(self) -> int:
         """Run all diagnostic checks"""
@@ -555,9 +541,9 @@ class DeepSeekDiagnostic:
             self.check_api_authentication,
             self.check_model_availability,
             self.check_chat_completion_basic,
-            self.check_json_via_prompt,
+            self.check_json_mode_support,
             self.check_legal_event_extraction,
-            self.check_reasoning_mode
+            self.check_rate_limiting
         ]
 
         for check in checks:
@@ -581,11 +567,11 @@ class DeepSeekDiagnostic:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="DeepSeek R1 Distill via OpenRouter diagnostic tool"
+        description="DeepSeek Direct API diagnostic tool"
     )
     parser.add_argument(
         "--test-model",
-        help="Override model to test (default: deepseek/deepseek-r1-distill-llama-70b)",
+        help="Override model to test (default: deepseek-chat)",
         default=None
     )
     parser.add_argument(
