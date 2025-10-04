@@ -6,8 +6,11 @@ Unified Five-Column Table: Docling + LangExtract + Shared Utilities
 
 import streamlit as st
 import os
-from dotenv import load_dotenv
 import logging
+
+# Load environment variables FIRST (before imports that need it)
+from dotenv import load_dotenv
+load_dotenv()
 
 # Import refactored shared utilities for guard-railed five-column exports
 from src.ui.streamlit_common import (
@@ -17,9 +20,6 @@ from src.ui.streamlit_common import (
     create_download_section
 )
 from src.utils.file_handler import FileHandler
-
-# Load environment variables
-load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

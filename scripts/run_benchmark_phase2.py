@@ -17,12 +17,12 @@ import pandas as pd
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# Load environment FIRST (before imports that need it)
 from dotenv import load_dotenv
+load_dotenv()
+
 from src.core.extractor_factory import create_default_extractors
 from src.core.interfaces import EventRecord
-
-# Load environment
-load_dotenv()
 
 # Configure logging
 logging.basicConfig(

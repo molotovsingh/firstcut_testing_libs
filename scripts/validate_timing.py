@@ -8,17 +8,17 @@ import sys
 import os
 from pathlib import Path
 import pandas as pd
-from dotenv import load_dotenv
 import logging
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# Load environment FIRST (before imports that need it)
+from dotenv import load_dotenv
+load_dotenv()
+
 from src.core.legal_pipeline_refactored import LegalEventsPipeline
 from src.utils.file_handler import FileHandler
-
-# Load environment
-load_dotenv()
 
 # Configure logging
 logging.basicConfig(

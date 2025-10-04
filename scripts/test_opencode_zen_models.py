@@ -25,11 +25,11 @@ except ImportError:
     print("❌ Error: requests library not available")
     sys.exit(1)
 
+# Load environment FIRST (before imports that need it)
 from dotenv import load_dotenv
-from src.core.constants import LEGAL_EVENTS_PROMPT
-
-# Load environment
 load_dotenv()
+
+from src.core.constants import LEGAL_EVENTS_PROMPT
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(message)s')

@@ -22,16 +22,16 @@ import json
 import logging
 from pathlib import Path
 from typing import Dict, List, Any
-from dotenv import load_dotenv
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.core.judge_panel import JudgePanel
-
-# Load environment variables
+# Load environment variables FIRST (before imports that need it)
+from dotenv import load_dotenv
 load_dotenv()
+
+from src.core.judge_panel import JudgePanel
 
 # Configure logging
 logging.basicConfig(

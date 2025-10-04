@@ -18,10 +18,11 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# Load environment variables FIRST (before imports that need it)
 from dotenv import load_dotenv
-from src.core.llm_judge import LLMJudge
-
 load_dotenv()
+
+from src.core.llm_judge import LLMJudge
 
 logging.basicConfig(
     level=logging.INFO,
