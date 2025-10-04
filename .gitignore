@@ -76,6 +76,7 @@ output/
 # Conversation references (should be in ~/claude-conversations/)
 claudechatreferance/
 claude-conversations/
+~/claude-conversations/
 *conversation*.txt
 *conversation*.md
 .npm-cache/
