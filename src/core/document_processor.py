@@ -59,6 +59,32 @@ class DocumentProcessor:
             do_cell_matching=config.do_cell_matching
         )
 
+        # Build OCR options based on configured engine
+        ocr_options = None
+        if config.do_ocr:
+            if config.ocr_engine == "tesseract":
+                from docling.datamodel.pipeline_options import TesseractOcrOptions
+                # Validate TESSDATA_PREFIX for Tesseract
+                import os
+                tessdata = os.getenv("TESSDATA_PREFIX")
+                if not tessdata:
+                    logger.warning("⚠️ TESSDATA_PREFIX not set - Tesseract OCR may fail. "
+                                   "Set it to your Tesseract language data directory.")
+                ocr_options = TesseractOcrOptions()
+                logger.info(f"✅ Using Tesseract OCR (TESSDATA_PREFIX: {tessdata or 'NOT SET'})")
+            elif config.ocr_engine == "ocrmac":
+                from docling.datamodel.pipeline_options import OcrMacOptions
+                ocr_options = OcrMacOptions()
+                logger.info("✅ Using OCRmac (macOS Vision Framework)")
+            elif config.ocr_engine == "rapidocr":
+                from docling.datamodel.pipeline_options import RapidOcrOptions
+                ocr_options = RapidOcrOptions()
+                logger.info("✅ Using RapidOCR (lightweight)")
+            else:  # easyocr (fallback)
+                from docling.datamodel.pipeline_options import EasyOcrOptions
+                ocr_options = EasyOcrOptions()
+                logger.info("✅ Using EasyOCR (PyTorch-based)")
+
         # Build format options for each supported document type with appropriate backends
         format_options = {}
 
@@ -81,7 +107,8 @@ class DocumentProcessor:
                     "Docling Parse V4 backend requires docling.pipeline.standard_pdf_pipeline."
                 )
             pdf_pipeline = StandardPdfPipeline
-            pdf_pipeline_options = PdfPipelineOptions(
+            # Construct PdfPipelineOptions; avoid passing ocr_options when OCR is disabled
+            kwargs = dict(
                 # Base options
                 accelerator_options=accelerator_options,
                 artifacts_path=config.artifacts_path,
@@ -97,8 +124,13 @@ class DocumentProcessor:
                 images_scale=1.0,
                 generate_picture_images=False,
                 generate_table_images=False,
-                generate_parsed_pages=False
+                generate_parsed_pages=False,
             )
+            # Only provide explicit ocr_options if OCR is enabled; otherwise let
+            # PdfPipelineOptions use its default (avoids pydantic validation error)
+            if config.do_ocr and ocr_options is not None:
+                kwargs["ocr_options"] = ocr_options
+            pdf_pipeline_options = PdfPipelineOptions(**kwargs)
             logger.info("✅ Using Docling Parse V4 backend with StandardPdfPipeline for PDF")
 
         format_options[InputFormat.PDF] = FormatOption(

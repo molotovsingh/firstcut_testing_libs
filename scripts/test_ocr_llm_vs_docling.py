@@ -34,9 +34,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from dotenv import load_dotenv
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
+
+# Load environment variables from .env
+load_dotenv(PROJECT_ROOT / ".env")
 
 from src.core.config import DoclingConfig
 from src.core.docling_adapter import DoclingDocumentExtractor
@@ -155,7 +160,7 @@ def run_claude_vision(file_path: Path) -> ExtractionResult:
 
     response = client.messages.create(
         model="claude-3-7-sonnet-20250219",
-        max_output_tokens=4000,
+        max_tokens=4000,
         messages=messages
     )
     elapsed = time.perf_counter() - start

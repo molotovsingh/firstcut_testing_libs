@@ -64,16 +64,39 @@ This system now supports **multiple event extraction providers** with two select
 
 The Streamlit application (`app.py`) includes a **provider selector** in the Processing panel that lets you switch between providers without restarting:
 
-- **LangExtract** (Google Gemini) - Default provider
-- **OpenRouter** (Unified API) - Access to multiple AI models
-- **OpenCode Zen** (Legal AI) - Specialized legal extraction
+- **OpenRouter** (Unified API) - ⭐ **Recommended Default** - Best quality/cost/speed balance
+- **Anthropic** (Claude 3 Haiku) - **Speed/Cost Champion** - 10x cheaper, 4x faster
+- **OpenAI** (GPT-4o/4-mini) - **Quality Champion** - Most detailed extraction
+- **LangExtract** (Google Gemini) - **Completeness Champion** - Captures all details
+- **OpenCode Zen** (Legal AI) - ⚠️ Currently unstable
+
+**📊 Provider Comparison** (based on 2025-10-03 testing):
+
+**For Digital PDFs** (clean text):
+- **OpenRouter**: 8/10 quality, ~$0.015/doc, ~14s ⭐ **Best Overall**
+- **Anthropic**: 7/10 quality, $0.003/doc, 4.4s → High-volume processing
+- **OpenAI**: 8/10 quality, $0.03/doc, 18s → High-stakes legal work
+- **LangExtract**: 6/10 quality, ~$0.01/doc, 36s → Comprehensive analysis
+
+**For Scanned PDFs** (requires OCR):
+- **Anthropic**: 10/10 quality, $0.0005/doc, 2.05s ⭐ **OCR Champion** (4x cheaper, 3x faster)
+- **OpenAI**: 10/10 quality, $0.0039/doc, 5.96s → Maximum detail
+- **OpenRouter**: 10/10 quality, ~$0.008/doc, 8.43s → Consistent quality
+- **LangExtract**: 7/10 quality, ~$0.002/doc, 3.82s → Comprehensive but noisy
+
+**Key Finding**: ✅ **OCR does NOT degrade extraction quality** - Docling OCR is production-ready. Anthropic becomes the top choice for scanned documents due to speed/cost advantages when OCR is the bottleneck.
+
+See detailed evaluations:
+- Digital PDFs: `docs/benchmarks/2025-10-03-manual-comparison.md`
+- Scanned PDFs: `docs/benchmarks/2025-10-03-ocr-comparison.md`
 
 **⚠️ Important**: Each provider requires **provider-specific** API keys. The pipeline validates only the key needed for your selected provider:
 
 **Required API Keys (Provider-Specific):**
+- **OpenRouter**: `OPENROUTER_API_KEY` (recommended default)
+- **Anthropic**: `ANTHROPIC_API_KEY` (for speed/cost optimization)
+- **OpenAI**: `OPENAI_API_KEY` (for maximum quality)
 - **LangExtract**: `GEMINI_API_KEY` or `GOOGLE_API_KEY` (either one)
-- **OpenRouter**: `OPENROUTER_API_KEY` (only OpenRouter key required)
-- **OpenCode Zen**: `OPENCODEZEN_API_KEY` (only OpenCode Zen key required)
 
 **How Validation Works:**
 - Selecting LangExtract → Validates `GEMINI_API_KEY` only
@@ -518,6 +541,49 @@ The adapter pattern makes it easy to add new implementations:
 3. **Configure via environment** variables
 
 This design enables **A/B testing**, **gradual migrations**, and **vendor flexibility** without changing application logic.
+
+### Tesseract OCR Setup (Recommended)
+
+Tesseract is the default OCR engine and is **3x faster** than EasyOCR with **31% better text extraction**.
+
+**Installation:**
+
+```bash
+# macOS (Homebrew)
+brew install tesseract
+
+# Linux (Ubuntu/Debian)
+sudo apt install tesseract-ocr libtesseract-dev
+
+# Windows
+# Download from: https://github.com/UB-Mannheim/tesseract/wiki
+```
+
+**Configuration:**
+
+Set the `TESSDATA_PREFIX` environment variable to point to Tesseract's language data directory:
+
+```bash
+# macOS (Homebrew)
+export TESSDATA_PREFIX=/usr/local/opt/tesseract/share/tessdata
+
+# Linux (apt)
+export TESSDATA_PREFIX=/usr/share/tesseract-ocr/4.00/tessdata
+
+# Windows
+set TESSDATA_PREFIX=C:\Program Files\Tesseract-OCR\tessdata
+```
+
+**Verify Installation:**
+
+```bash
+tesseract --version
+echo $TESSDATA_PREFIX  # Should show the path
+```
+
+**Performance:** Tesseract processes scanned legal documents at **22s/page** vs EasyOCR's **70s/page** (3x faster).
+
+See benchmark: [`docs/benchmarks/2025-10-03-ocr-engine-war.md`](docs/benchmarks/2025-10-03-ocr-engine-war.md)
 
 ### Environment Variables Quick Reference
 

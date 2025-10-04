@@ -37,6 +37,15 @@ This is a **proof-of-concept testing environment** for evaluating combinations o
 # Install dependencies
 uv sync
 
+# Install Tesseract OCR (recommended - 3x faster than EasyOCR)
+# macOS
+brew install tesseract
+export TESSDATA_PREFIX=/usr/local/opt/tesseract/share/tessdata
+
+# OR Linux (Ubuntu/Debian)
+sudo apt install tesseract-ocr libtesseract-dev
+export TESSDATA_PREFIX=/usr/share/tesseract-ocr/4.00/tessdata
+
 # Create environment file from template
 cp .env.example .env
 # Then edit .env with real API keys:
@@ -313,3 +322,4 @@ This architecture enables A/B testing, gradual migrations, and vendor flexibilit
 - `tests/test_acceptance_criteria.py` - Core functionality validation
 - `tests/test_performance_integration.py` - Performance benchmarks
 - `scripts/test_fallback_models.py` - Provider comparison framework (18 models tested)
+- when planning try to be updated on api and library documentation by researching the internet
