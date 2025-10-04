@@ -1,20 +1,20 @@
 # Pluggable Extractors PRD
 
-> **Status:** Implemented (3 event extractors; document parsers pending)
+> **Status:** Implemented (6 event extractors; document parsers pending)
 
-> **Last Updated:** 2025-10-02
+> **Last Updated:** 2025-10-04
 
 > **Author:** Codex assistant
 
 ## 1. Background
 - Current proof-of-concept relies on Docling for document parsing and LangExtract (Gemini) for legal event extraction.
-- Early validation (event-extractor-002, event-extractor-003, streamlit-provider-selector-001) proved the adapter interfaces work and shipped three working providers: LangExtract, OpenRouter, and OpenCode Zen.
+- Early validation (event-extractor-002, event-extractor-003, streamlit-provider-selector-001) proved the adapter interfaces work and shipped six working providers: LangExtract, OpenRouter, OpenCode Zen, OpenAI, Anthropic, and DeepSeek.
 - Product aims to evaluate multiple vendor combinations (e.g., Docling vs. PyPDF; LangExtract vs. OpenRouter/OpenAI/Anthropic) without rewriting pipeline code.
 
 ## 2. Problem Statement
 Legal ops teams want to plug in different document processors and LLM-backed event extractors depending on data sensitivity, cost, latency, and availability. The pipeline initially hardcoded Docling + LangExtract, forcing code changes to trial alternatives and making it difficult to compare providers or deploy to environments without Gemini access.
 
-**Current Status**: Event extractors are now pluggable via `ExtractorFactory` with 3 implemented providers (LangExtract, OpenRouter, OpenCode Zen). Document parsers remain hardcoded to Docling pending Phase 2 implementation.
+**Current Status**: Event extractors are now pluggable via `ExtractorFactory` with 6 implemented providers (LangExtract, OpenRouter, OpenCode Zen, OpenAI, Anthropic, DeepSeek), representing 75% completion of Phase 1 target (6/8 providers). Document parsers remain hardcoded to Docling pending Phase 2 implementation.
 
 ## 3. Goals & Success Metrics
 ### Goals

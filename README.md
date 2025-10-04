@@ -68,6 +68,7 @@ The Streamlit application (`app.py`) includes a **provider selector** in the Pro
 - **Anthropic** (Claude 3 Haiku) - **Speed/Cost Champion** - 10x cheaper, 4x faster
 - **OpenAI** (GPT-4o/4-mini) - **Quality Champion** - Most detailed extraction
 - **LangExtract** (Google Gemini) - **Completeness Champion** - Captures all details
+- **DeepSeek** (Direct API) - **Research Champion** - Advanced reasoning model
 - **OpenCode Zen** (Legal AI) - ⚠️ Currently unstable
 
 **📊 Provider Comparison** (based on 2025-10-03 testing):
@@ -86,7 +87,22 @@ The Streamlit application (`app.py`) includes a **provider selector** in the Pro
 
 **Key Finding**: ✅ **OCR does NOT degrade extraction quality** - Docling OCR is production-ready. Anthropic becomes the top choice for scanned documents due to speed/cost advantages when OCR is the bottleneck.
 
+**Phase 4 Benchmark Results** (2025-10-04, 6-provider comparison with 3-judge panel):
+
+| Provider | Overall Quality | Completeness | Accuracy | Citation Quality | Win Rate |
+|----------|----------------|--------------|----------|------------------|----------|
+| **OpenRouter** | 6.25/10 ⭐ | 6.75/10 | 8.5/10 | 5.0/10 | 100% (2/2) |
+| **OpenAI** | 6.25/10 | 6.75/10 | 8.5/10 | 5.0/10 | Tied 2nd |
+| **Anthropic** | 4.0/10 | 5.0/10 | 5.5/10 | 2.5/10 | 0% |
+| **LangExtract** | 2.75/10 | 5.5/10 | 6.0/10 | **0.0/10** ❌ | 0% |
+| **DeepSeek** | N/A | - | - | - | No API key |
+| **OpenCode Zen** | 0.0/10 | 0.0/10 | 0.0/10 | 0.0/10 | Extraction failures |
+
+**Key Finding**: **Citation quality is paramount for legal work** - LangExtract extracted 4-5 events but scored lowest due to missing citations. 1 well-cited event beats 5 events without citations.
+
 See detailed evaluations:
+- Phase 4 (6-provider benchmark): `config/benchmarks/results/phase4_judge_results_20251004_183300.json`
+- Phase 2 (manual eval): `docs/reports/phase2-comparison-2025-10-04.md`
 - Digital PDFs: `docs/benchmarks/2025-10-03-manual-comparison.md`
 - Scanned PDFs: `docs/benchmarks/2025-10-03-ocr-comparison.md`
 
@@ -97,6 +113,8 @@ See detailed evaluations:
 - **Anthropic**: `ANTHROPIC_API_KEY` (for speed/cost optimization)
 - **OpenAI**: `OPENAI_API_KEY` (for maximum quality)
 - **LangExtract**: `GEMINI_API_KEY` or `GOOGLE_API_KEY` (either one)
+- **DeepSeek**: `DEEPSEEK_API_KEY` (for advanced reasoning)
+- **OpenCode Zen**: `OPENCODEZEN_API_KEY` (for legal AI specialization)
 
 **How Validation Works:**
 - Selecting LangExtract → Validates `GEMINI_API_KEY` only
@@ -123,6 +141,18 @@ export OPENROUTER_API_KEY=your_openrouter_api_key_here
 # Use OpenCode Zen
 export EVENT_EXTRACTOR=opencode_zen
 export OPENCODEZEN_API_KEY=your_opencode_zen_api_key_here
+
+# Use OpenAI
+export EVENT_EXTRACTOR=openai
+export OPENAI_API_KEY=your_openai_api_key_here
+
+# Use Anthropic
+export EVENT_EXTRACTOR=anthropic
+export ANTHROPIC_API_KEY=your_anthropic_api_key_here
+
+# Use DeepSeek
+export EVENT_EXTRACTOR=deepseek
+export DEEPSEEK_API_KEY=your_deepseek_api_key_here
 ```
 
 **Note**: The Streamlit UI selector takes precedence over the environment variable during interactive sessions.

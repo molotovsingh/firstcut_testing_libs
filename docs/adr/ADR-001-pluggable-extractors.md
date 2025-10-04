@@ -9,13 +9,13 @@
 ## Context
 The legal events pipeline initially wired Docling for document ingestion and LangExtract (Gemini) for event extraction with hardcoded implementations. Product needs the ability to mix and match extractors through configuration so teams can pick providers based on latency, security, and cost without touching pipeline orchestration.
 
-**Implementation Status**: Event extractors are now pluggable via `EVENT_PROVIDER_REGISTRY` in `src/core/extractor_factory.py`, supporting LangExtract (Gemini), OpenRouter (11+ tested models), and OpenCode Zen (2 tested models). Document parsers remain hardcoded to Docling pending Phase 2.
+**Implementation Status**: Event extractors are now pluggable via `EVENT_PROVIDER_REGISTRY` in `src/core/extractor_factory.py`, supporting 6 providers: LangExtract (Gemini), OpenRouter (11+ models), OpenCode Zen, OpenAI (direct), Anthropic (direct), and DeepSeek (direct). This represents 75% completion of the Phase 1 target (6/8 providers). Document parsers remain hardcoded to Docling pending Phase 2.
 
 Constraints and observations:
 - `src/core/interfaces.py` defines `DocumentExtractor` and `EventExtractor` protocols with `is_available()` hooks.
 - `src/core/config.py` provides typed dataclasses per provider (LangExtractConfig, OpenRouterConfig, OpenCodeZenConfig).
 - `src/core/extractor_factory.py` uses `EVENT_PROVIDER_REGISTRY` to instantiate adapters based on `EVENT_EXTRACTOR` environment variable.
-- Streamlit UI provides provider selection dropdown with 3 active providers (see streamlit-provider-selector-001).
+- Streamlit UI provides provider selection dropdown with 6 active providers (see app.py:128-135 and streamlit-provider-selector-001).
 
 ## Decision
 Implement a provider registry architecture that maps configuration keys to adapter factories on both sides of the pipeline.

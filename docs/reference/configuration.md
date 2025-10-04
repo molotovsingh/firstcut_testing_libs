@@ -38,19 +38,21 @@ Central place for environment variables that control provider selection and beha
 - `OPENAI_MODEL`: Model identifier (default: `gpt-4o-mini`)
 - `OPENAI_TIMEOUT`: Request timeout in seconds (default: `60`)
 
-## Future Providers (Phase 1 Implementation)
-
-### Anthropic Direct API
+## Anthropic (Direct API)
 - `ANTHROPIC_API_KEY`: Required for Anthropic direct access
 - `ANTHROPIC_BASE_URL`: Default `https://api.anthropic.com/v1`
 - `ANTHROPIC_MODEL`: Model identifier (default: `claude-3-haiku-20240307`)
 - `ANTHROPIC_TIMEOUT`: Request timeout in seconds (default: `60`)
 
-### DeepSeek Direct API
+## DeepSeek (Direct API)
 - `DEEPSEEK_API_KEY`: Required for DeepSeek direct access
 - `DEEPSEEK_BASE_URL`: Default `https://api.deepseek.com/v1`
 - `DEEPSEEK_MODEL`: Model identifier (default: `deepseek-chat`)
 - `DEEPSEEK_TIMEOUT`: Request timeout in seconds (default: `60`)
+
+---
+
+## Future Providers (Phase 1 - Remaining 2/8)
 
 ### Moonshot AI (Kimi K2)
 - `MOONSHOT_API_KEY`: Required for Moonshot access
@@ -68,7 +70,7 @@ Central place for environment variables that control provider selection and beha
 
 ## Provider Comparison
 
-### Implemented Providers (5/8)
+### Implemented Providers (6/8 - 75% Complete)
 
 #### LangExtract (Google Gemini) - Default
 - **Status**: ✅ Implemented
@@ -117,8 +119,9 @@ All models scored 10/10 for quality and reliability with `response_format` suppo
 #### OpenAI (Direct API) ⭐ NEW
 - **Status**: ✅ Implemented (2025-10-02)
 - **Models**: GPT-4o, GPT-4o-mini, GPT-4-turbo, GPT-3.5-turbo
-- **Quality**: 10/10 (validated with diagnostic script)
-- **Best For**: Standard choice, native JSON mode, reliable
+- **Quality**: 6.25/10 (Phase 4 benchmark - tied 2nd with OpenRouter)
+- **Best For**: Citation quality, well-cited single events
+- **Diagnostic Tests**: 10/10 (validated with diagnostic script)
 
 **Model Pricing & Features**:
 | Model | Cost ($/M in + out) | JSON Mode | Rate Limits | Best For |
@@ -150,8 +153,9 @@ All models scored 10/10 for quality and reliability with `response_format` suppo
 #### Anthropic (Direct API) ⭐ NEW
 - **Status**: ✅ Implemented (2025-10-02)
 - **Models**: Claude 3.5 Sonnet, Claude 3 Opus, Claude 3 Haiku
-- **Quality**: 10/10 (validated with diagnostic script across all 3 models)
-- **Best For**: Highest quality extraction, tool use pattern for JSON
+- **Quality**: 4.0/10 (Phase 4 benchmark - moderate completeness/accuracy)
+- **Best For**: Speed/cost optimization, simple extraction
+- **Diagnostic Tests**: 10/10 (validated with diagnostic script across all 3 models)
 
 **Model Pricing & Features**:
 | Model | Cost ($/M in + out) | JSON Mode | Rate Limits | Best For |
@@ -183,18 +187,31 @@ All models scored 10/10 for quality and reliability with `response_format` suppo
 **Diagnostic Script**: Run `uv run python scripts/test_anthropic.py` for 10-level validation
 **Test Results**: ✅ 10/10 diagnostic checks passed for Haiku, Sonnet, and Opus (2025-10-02)
 
-### Planned Providers (3/8) - Phase 1 Implementation
+#### DeepSeek (Direct API) ⭐ NEW
+- **Status**: ✅ Implemented (2025-10-04)
+- **Models**: DeepSeek Chat, DeepSeek R1 Distill
+- **Quality**: Pending Phase 4 benchmark (API key not configured)
+- **Best For**: Research, advanced reasoning tasks
 
-#### DeepSeek Direct API
-- **Status**: ⏳ Planned (Week 3)
-- **Models**: DeepSeek R1, DeepSeek V3, DeepSeek Chat
-- **Expected Quality**: 9-10/10
-- **Expected Cost**: $0.14/M to TBD
+**Model Pricing & Features**:
+| Model | Cost ($/M in + out) | JSON Mode | Best For |
+|-------|---------------------|-----------|----------|
+| `deepseek-chat` | $0.14 + $0.28 | ✅ OpenAI-compatible | **Recommended Default** |
+| `deepseek-reasoner` | TBD | ✅ Reasoning model | Advanced analysis |
 
-| Model | Cost ($/M in + out) | Expected Quality | Notes |
-|-------|---------------------|------------------|-------|
-| `deepseek-chat` | $0.14 + $0.28 | 9/10 | General purpose |
-| `deepseek-reasoner` | TBD | 10/10 | R1 reasoning model |
+**Setup Guide**:
+1. Get API key from https://platform.deepseek.com/api_keys
+2. Add to `.env`: `DEEPSEEK_API_KEY=sk-...`
+3. Set provider: `EVENT_EXTRACTOR=deepseek`
+4. Optionally set model: `DEEPSEEK_MODEL=deepseek-chat`
+
+**JSON Mode Support**:
+- ✅ DeepSeek uses OpenAI-compatible API with `response_format={"type": "json_object"}`
+- Compatible with all DeepSeek models
+
+**Diagnostic Script**: Run `uv run python scripts/test_deepseek.py` for 10-level validation
+
+### Planned Providers (2/8 Remaining) - Phase 1 Implementation
 
 #### Moonshot AI (Kimi K2)
 - **Status**: ⏳ Planned (Week 4) - **HIGH RISK**
