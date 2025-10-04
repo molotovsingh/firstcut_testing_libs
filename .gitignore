@@ -59,6 +59,9 @@ output/
 !sample_pdf/**/*.docx
 !sample_pdf/**/*.eml
 
+# Future database location for pipeline registry
+.registry/
+
 # Logs
 *.log
 
@@ -68,3 +71,7 @@ claude-conversations/
 *conversation*.txt
 *conversation*.md
 .npm-cache/
+
+# Temporary test files (for development only)
+test_metadata_integration.py
+test_excel_metadata_sheet.py

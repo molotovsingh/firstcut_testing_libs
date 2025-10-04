@@ -8,6 +8,7 @@ import tempfile
 import logging
 import os
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Tuple, Optional
 
@@ -16,6 +17,7 @@ from ..core.table_formatter import TableFormatter
 from ..core.constants import FIVE_COLUMN_HEADERS, DEFAULT_NO_DATE
 from ..core.extractor_factory import create_default_extractors, validate_extractors
 from ..core.interfaces import DocumentExtractor, EventExtractor
+from ..core.pipeline_metadata import PipelineMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +52,9 @@ class LegalEventsPipeline:
         # Track requested event extractor (default to env)
         requested_provider = event_extractor or os.getenv("EVENT_EXTRACTOR") or "langextract"
         self.event_extractor_type = requested_provider.strip().lower()
+
+        # Store provider for metadata tracking
+        self.provider = self.event_extractor_type
 
         # Validate environment with provider-aware checks
         self._validate_environment()
@@ -112,13 +117,23 @@ class LegalEventsPipeline:
     def process_documents_for_legal_events(self, uploaded_files: List) -> Tuple[pd.DataFrame, Optional[str]]:
         """
         Process documents with GUARANTEED five-column table output
+        Generates comprehensive metadata for tracking and future database migration
 
         Args:
             uploaded_files: List of Streamlit uploaded file objects
 
         Returns:
-            Tuple of (GUARANTEED DataFrame, optional warning message)
+            Tuple of (GUARANTEED DataFrame with metadata, optional warning message)
         """
+        # Generate metadata at start (captures config snapshot)
+        timestamp = datetime.now()
+        first_file = uploaded_files[0] if uploaded_files else None
+        metadata = PipelineMetadata.from_pipeline(
+            pipeline=self,
+            input_file=first_file,
+            timestamp=timestamp
+        )
+
         try:
             # Validate files
             supported_files, unsupported_files = self.file_handler.validate_uploaded_files(uploaded_files)
@@ -131,10 +146,15 @@ class LegalEventsPipeline:
             if not supported_files:
                 logger.warning("⚠️ No supported files - creating fallback table")
                 fallback_df = TableFormatter.create_fallback_dataframe("No supported files uploaded")
+                metadata.status = 'failed'
+                metadata.error_message = "No supported files found"
+                fallback_df.attrs['pipeline_id'] = metadata.run_id
+                fallback_df.attrs['metadata'] = metadata.to_dict()
                 return fallback_df, "No supported files found for processing"
 
             # Process files and collect records
             all_records = []
+            processing_start = time.perf_counter()
 
             with tempfile.TemporaryDirectory() as temp_dir:
                 temp_path = Path(temp_dir)
@@ -157,6 +177,9 @@ class LegalEventsPipeline:
                         }
                         all_records.append(fallback_record)
 
+            # Capture total processing time
+            metadata.total_seconds = time.perf_counter() - processing_start
+
             # GUARANTEE: Always have at least one record
             if not all_records:
                 logger.warning("⚠️ No records generated - creating fallback")
@@ -168,6 +191,7 @@ class LegalEventsPipeline:
                     "document_reference": "Multiple files processed"
                 }
                 all_records = [fallback_record]
+                metadata.status = 'partial'
 
             # Convert to DataFrame using standardized formatter
             df = TableFormatter.normalize_records_to_dataframe(all_records)
@@ -176,14 +200,36 @@ class LegalEventsPipeline:
             if not TableFormatter.validate_dataframe_format(df):
                 logger.error("❌ CRITICAL: Final DataFrame validation failed")
                 df = TableFormatter.create_fallback_dataframe("Final validation failed")
+                metadata.status = 'failed'
+                metadata.error_message = "Final validation failed"
+            else:
+                # Populate quality metrics from successful results
+                metadata.events_extracted = len(df)
+                metadata.citations_found = self._count_real_citations(df)
+                metadata.avg_detail_length = df[FIVE_COLUMN_HEADERS[2]].str.len().mean()
+                metadata.status = 'success'
 
-            logger.info(f"✅ Pipeline completed successfully with {len(df)} legal events")
+                # Extract timing metrics if available (from per-record timing)
+                if 'Docling_Seconds' in df.columns:
+                    metadata.docling_seconds = df['Docling_Seconds'].sum()
+                if 'Extractor_Seconds' in df.columns:
+                    metadata.extractor_seconds = df['Extractor_Seconds'].sum()
+
+            # Attach metadata to DataFrame (accessible for export and saving)
+            df.attrs['pipeline_id'] = metadata.run_id
+            df.attrs['metadata'] = metadata.to_dict()
+
+            logger.info(f"✅ Pipeline completed successfully with {len(df)} legal events [Pipeline-ID: {metadata.run_id}]")
             return df, warning_message
 
         except Exception as e:
             logger.error(f"❌ CRITICAL pipeline failure: {e}")
-            # ULTIMATE FALLBACK: Create emergency table
+            # ULTIMATE FALLBACK: Create emergency table with metadata
             emergency_df = TableFormatter.create_fallback_dataframe(f"Critical pipeline error: {str(e)}")
+            metadata.status = 'failed'
+            metadata.error_message = str(e)
+            emergency_df.attrs['pipeline_id'] = metadata.run_id
+            emergency_df.attrs['metadata'] = metadata.to_dict()
             return emergency_df, f"Pipeline failure: {str(e)}"
 
     def _process_single_file_guaranteed(self, uploaded_file, temp_path: Path) -> List[Dict]:
@@ -310,3 +356,20 @@ class LegalEventsPipeline:
     def get_table_summary(self, df: pd.DataFrame) -> Dict:
         """Get table summary using standardized formatter"""
         return TableFormatter.get_table_summary(df)
+
+    def _count_real_citations(self, df: pd.DataFrame) -> int:
+        """
+        Count events with real citations (not default/fallback values)
+
+        Args:
+            df: Legal events DataFrame
+
+        Returns:
+            Count of events with meaningful citations
+        """
+        citation_col = FIVE_COLUMN_HEADERS[3]  # Citation column
+        real_citations = df[
+            (~df[citation_col].str.contains("No citation available", na=False)) &
+            (~df[citation_col].str.contains("processing failed", na=False))
+        ]
+        return len(real_citations)

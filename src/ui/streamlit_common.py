@@ -169,9 +169,9 @@ def save_results_to_project(
     pipeline: Optional[LegalEventsPipeline] = None
 ) -> None:
     """
-    Auto-save results with parser-extractor pair identifier for future comparison
+    Auto-save results with parser-extractor pair identifier + metadata sidecar
 
-    Saves to: output/docling-{provider}/{doc_name}_{timestamp}.{xlsx,csv,json}
+    Saves to: output/docling-{provider}/{doc_name}_{timestamp}.{xlsx,csv,json,_metadata.json}
 
     Args:
         df: DataFrame with legal events to save
@@ -214,6 +214,18 @@ def save_results_to_project(
                 saved_files.append(f"{fmt}")
             except Exception as e:
                 logger.warning(f"⚠️ Failed to save {fmt}: {e}")
+
+        # Save metadata sidecar JSON (for manual inspection and future DB import)
+        try:
+            metadata_dict = df.attrs.get('metadata')
+            if metadata_dict:
+                import json
+                metadata_path = output_dir / f"{base_name}_metadata.json"
+                metadata_path.write_text(json.dumps(metadata_dict, indent=2, default=str), encoding='utf-8')
+                saved_files.append('metadata.json')
+                logger.info(f"💾 Saved metadata sidecar: {metadata_path.name}")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to save metadata sidecar: {e}")
 
         if saved_files:
             logger.info(

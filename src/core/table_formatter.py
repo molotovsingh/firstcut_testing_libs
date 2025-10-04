@@ -5,7 +5,7 @@ Ensures consistency between pipeline, UI, and downloads
 
 import pandas as pd
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 from .constants import FIVE_COLUMN_HEADERS, INTERNAL_FIELDS, DEFAULT_NO_DATE
 
@@ -154,33 +154,35 @@ class TableFormatter:
         return df
 
     @staticmethod
-    def prepare_for_export(df: pd.DataFrame, format_type: str = "xlsx") -> bytes:
+    def prepare_for_export(df: pd.DataFrame, format_type: str = "xlsx", pipeline_id: Optional[str] = None) -> bytes:
         """
-        Prepare DataFrame for export in specified format
+        Prepare DataFrame for export in specified format with embedded pipeline ID
 
         Args:
             df: DataFrame to export
             format_type: Export format ('xlsx', 'csv', 'json')
+            pipeline_id: Optional pipeline ID to embed (extracted from df.attrs if not provided)
 
         Returns:
-            Exported data as bytes
+            Exported data as bytes with pipeline ID embedded
         """
+        # Extract pipeline_id from DataFrame.attrs if not explicitly provided
+        if pipeline_id is None:
+            pipeline_id = df.attrs.get('pipeline_id')
+
         if not TableFormatter.validate_dataframe_format(df):
             logger.error("❌ Cannot export invalid DataFrame format")
             df = TableFormatter.create_fallback_dataframe("Invalid format for export")
 
         try:
             if format_type.lower() == "xlsx":
-                import io
-                buffer = io.BytesIO()
-                df.to_excel(buffer, index=False)
-                return buffer.getvalue()
+                return TableFormatter._export_excel_with_id(df, pipeline_id)
 
             elif format_type.lower() == "csv":
-                return df.to_csv(index=False).encode('utf-8')
+                return TableFormatter._export_csv_with_id(df, pipeline_id)
 
             elif format_type.lower() == "json":
-                return df.to_json(orient='records', indent=2).encode('utf-8')
+                return TableFormatter._export_json_with_id(df, pipeline_id)
 
             else:
                 raise ValueError(f"Unsupported export format: {format_type}")
@@ -190,6 +192,126 @@ class TableFormatter:
             # Return fallback CSV as bytes
             fallback_df = TableFormatter.create_fallback_dataframe(f"Export error: {str(e)}")
             return fallback_df.to_csv(index=False).encode('utf-8')
+
+    @staticmethod
+    def _export_csv_with_id(df: pd.DataFrame, pipeline_id: Optional[str]) -> bytes:
+        """
+        Export DataFrame as CSV with pipeline ID in comment header
+
+        Args:
+            df: DataFrame to export
+            pipeline_id: Pipeline ID to embed as comment
+
+        Returns:
+            CSV data with pipeline ID comment
+        """
+        csv_content = df.to_csv(index=False)
+
+        # Prepend pipeline ID as comment if available
+        if pipeline_id:
+            csv_content = f"# Pipeline-ID: {pipeline_id}\n{csv_content}"
+
+        return csv_content.encode('utf-8')
+
+    @staticmethod
+    def _export_excel_with_id(df: pd.DataFrame, pipeline_id: Optional[str]) -> bytes:
+        """
+        Export DataFrame as Excel with legal events + metadata sheets
+
+        Args:
+            df: DataFrame to export
+            pipeline_id: Pipeline ID to embed as document property
+
+        Returns:
+            Excel workbook with two sheets: Legal Events and Metadata
+        """
+        import io
+
+        buffer = io.BytesIO()
+
+        # Create Excel writer with multiple sheets
+        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+            # Sheet 1: Legal Events (main data)
+            df.to_excel(writer, sheet_name='Legal Events', index=False)
+
+            # Sheet 2: Metadata (if available from DataFrame attrs)
+            metadata_dict = df.attrs.get('metadata')
+            if metadata_dict:
+                metadata_df = TableFormatter._format_metadata_for_excel(metadata_dict)
+                metadata_df.to_excel(writer, sheet_name='Metadata', index=False, header=False)
+
+        return buffer.getvalue()
+
+    @staticmethod
+    def _format_metadata_for_excel(metadata: Dict[str, Any]) -> pd.DataFrame:
+        """
+        Convert metadata dictionary to formatted key-value DataFrame for Excel display
+
+        Args:
+            metadata: Metadata dictionary from pipeline
+
+        Returns:
+            DataFrame with Property and Value columns
+        """
+        rows = [
+            ("Pipeline ID", metadata.get('run_id', '')),
+            ("Timestamp", metadata.get('timestamp', '')),
+            ("", ""),  # Spacer
+            ("Parser", metadata.get('parser_name', '')),
+            ("Parser Version", metadata.get('parser_version', '') or 'N/A'),
+            ("Provider", metadata.get('provider_name', '')),
+            ("Model", metadata.get('provider_model', '')),
+            ("", ""),  # Spacer
+            ("OCR Engine", metadata.get('ocr_engine', '') or 'None'),
+            ("Table Mode", metadata.get('table_mode', '')),
+            ("Environment", metadata.get('environment', '')),
+            ("Session Label", metadata.get('session_label', '') or '(none)'),
+            ("", ""),  # Spacer
+            ("Input Filename", metadata.get('input_filename', '')),
+            ("Input Size (bytes)", f"{metadata.get('input_size_bytes', 0):,}" if metadata.get('input_size_bytes') else ''),
+            ("Input Pages", metadata.get('input_pages', '') or 'N/A'),
+            ("", ""),  # Spacer
+            ("Docling Time (seconds)", f"{metadata.get('docling_seconds', 0):.3f}" if metadata.get('docling_seconds') else ''),
+            ("Extractor Time (seconds)", f"{metadata.get('extractor_seconds', 0):.3f}" if metadata.get('extractor_seconds') else ''),
+            ("Total Time (seconds)", f"{metadata.get('total_seconds', 0):.3f}" if metadata.get('total_seconds') else ''),
+            ("", ""),  # Spacer
+            ("Events Extracted", metadata.get('events_extracted', '')),
+            ("Citations Found", metadata.get('citations_found', '')),
+            ("Avg Detail Length (chars)", f"{metadata.get('avg_detail_length', 0):.0f}" if metadata.get('avg_detail_length') else ''),
+            ("", ""),  # Spacer
+            ("Status", metadata.get('status', '')),
+            ("Error Message", metadata.get('error_message', '') or '(none)'),
+        ]
+
+        return pd.DataFrame(rows, columns=['Property', 'Value'])
+
+    @staticmethod
+    def _export_json_with_id(df: pd.DataFrame, pipeline_id: Optional[str]) -> bytes:
+        """
+        Export DataFrame as JSON with pipeline ID as top-level field
+
+        Args:
+            df: DataFrame to export
+            pipeline_id: Pipeline ID to embed
+
+        Returns:
+            JSON with pipeline_id field and legal_events array
+        """
+        import json
+
+        records = df.to_dict(orient='records')
+
+        # Wrap with pipeline_id if available
+        if pipeline_id:
+            output = {
+                "pipeline_id": pipeline_id,
+                "legal_events": records
+            }
+        else:
+            # Fallback to plain array if no pipeline_id
+            output = records
+
+        return json.dumps(output, indent=2).encode('utf-8')
 
     @staticmethod
     def get_table_summary(df: pd.DataFrame) -> Dict[str, Any]:
