@@ -130,7 +130,8 @@ def main():
             'openrouter': 'OpenRouter (Unified API)',
             'opencode_zen': 'OpenCode Zen (Legal AI)',
             'openai': 'OpenAI (GPT-4o/4-mini)',
-            'anthropic': 'Anthropic (Claude 3.5)'
+            'anthropic': 'Anthropic (Claude 3.5)',
+            'deepseek': 'DeepSeek (Direct API)'
         }
 
         # Radio group for provider selection
@@ -144,7 +145,8 @@ def main():
                  "• OpenRouter: OPENROUTER_API_KEY\n"
                  "• OpenCode Zen: OPENCODEZEN_API_KEY\n"
                  "• OpenAI: OPENAI_API_KEY\n"
-                 "• Anthropic: ANTHROPIC_API_KEY",
+                 "• Anthropic: ANTHROPIC_API_KEY\n"
+                 "• DeepSeek: DEEPSEEK_API_KEY",
             key="provider_selector"
         )
 

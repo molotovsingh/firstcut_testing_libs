@@ -132,6 +132,17 @@ class AnthropicConfig:
 
 
 @dataclass
+class DeepSeekConfig:
+    """Configuration for DeepSeek API operations"""
+
+    # API settings
+    api_key: str = field(default_factory=lambda: env_str("DEEPSEEK_API_KEY", ""))
+    base_url: str = field(default_factory=lambda: env_str("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1"))
+    model: str = field(default_factory=lambda: env_str("DEEPSEEK_MODEL", "deepseek-chat"))
+    timeout: int = field(default_factory=lambda: env_int("DEEPSEEK_TIMEOUT", 180))
+
+
+@dataclass
 class ExtractorConfig:
     """Configuration for extractor selection"""
 
@@ -190,6 +201,8 @@ def load_provider_config(
         event_config = OpenAIConfig()
     elif provider_key == "anthropic":
         event_config = AnthropicConfig()
+    elif provider_key == "deepseek":
+        event_config = DeepSeekConfig()
     else:
         event_config = LangExtractConfig()
         extractor_config.event_extractor = "langextract"

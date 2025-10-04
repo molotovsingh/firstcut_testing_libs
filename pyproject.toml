@@ -8,6 +8,7 @@ dependencies = [
     "anthropic>=0.40.0",
     "docling>=0.1.0",
     "extract-msg>=0.55.0",
+    "google-generativeai>=0.8.0",
     "langextract",
     "numpy<2",
     "ocrmac>=1.0.0",
