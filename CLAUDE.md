@@ -254,6 +254,7 @@ prompt = catalog.get_prompt('qwen_vl')
 **Current Extractors**:
 - **docling** (Local OCR): FREE, fast, production-ready, recommended for most documents
 - **qwen_vl** (Budget Vision): $0.00512/page, multimodal, fallback for poor quality scans
+- **deepseek_ocr** (Local GPU Vision): FREE, requires CUDA 11.8+ GPU, 3B vision model, high-quality Markdown output, 7-20x token compression, disabled by default (see `docs/deepseek_ocr_setup.md`)
 
 ### Event Extractor Catalog
 
@@ -699,6 +700,7 @@ This architecture enables A/B testing, gradual migrations, and vendor flexibilit
 
 ### Adapter Implementations
 - `src/core/docling_adapter.py` - Document text extraction (PDF/DOCX/HTML/PPTX)
+- `src/core/deepseek_ocr_adapter.py` - GPU-based vision OCR (DeepSeek-OCR 3B model)
 - `src/core/langextract_adapter.py` - Gemini 2.0 Flash event extraction
 - `src/core/openrouter_adapter.py` - Multi-provider unified API (11+ models)
 - `src/core/opencode_zen_adapter.py` - Legal AI specialized extraction

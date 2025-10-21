@@ -109,6 +109,34 @@ _DOC_EXTRACTOR_REGISTRY: List[DocExtractorEntry] = [
         prompt_override=None,
         factory_callable="src.core.extractor_factory._create_qwen_vl_document_extractor"
     ),
+
+    # === LOCAL GPU EXTRACTORS (Free but requires hardware) ===
+
+    DocExtractorEntry(
+        extractor_id="deepseek_ocr",
+        display_name="DeepSeek-OCR (Local GPU Vision)",
+        provider="local",
+        cost_per_page=0.0,  # Free (runs locally on GPU)
+        cost_display="FREE (requires GPU)",
+        supports_pdf=True,
+        supports_docx=False,
+        supports_images=True,
+        supports_vision=True,
+        processing_speed="medium",  # ~2-3s per page on A100-40G
+        ocr_quality="high",
+        recommended=False,
+        notes=(
+            "3B vision-language model for OCR. Converts documents to Markdown. "
+            "Requires CUDA 11.8+ GPU, ~4GB GPU memory. MIT licensed. "
+            "7-20x token compression vs traditional OCR. "
+            "Install: bash scripts/setup_deepseek_ocr.sh"
+        ),
+        documentation_url="https://github.com/deepseek-ai/DeepSeek-OCR",
+        enabled=False,  # Disabled by default (requires GPU setup)
+        prompt_id=None,  # Uses built-in prompt: "<image>\n<|grounding|>Convert the document to markdown."
+        prompt_override=None,
+        factory_callable="src.core.extractor_factory._create_deepseek_ocr_document_extractor"
+    ),
 ]
 
 

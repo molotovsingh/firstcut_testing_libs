@@ -15,6 +15,7 @@ from .config import (
 )
 from .docling_adapter import DoclingDocumentExtractor
 from .qwen_vl_doc_adapter import Qwen3VLDocumentExtractor
+from .deepseek_ocr_adapter import DeepSeekOCRDocumentExtractor
 from .langextract_adapter import LangExtractEventExtractor
 from .openrouter_adapter import OpenRouterEventExtractor
 from .opencode_zen_adapter import OpenCodeZenEventExtractor
@@ -56,6 +57,21 @@ def _create_qwen_vl_document_extractor(
     prompt = catalog.get_prompt("qwen_vl")
 
     return Qwen3VLDocumentExtractor(api_key=openrouter_api_key, prompt=prompt)
+
+
+def _create_deepseek_ocr_document_extractor(
+    _doc_config: DoclingConfig,
+    _event_config: Any,
+    _extractor_config: ExtractorConfig
+) -> DocumentExtractor:
+    """Factory for DeepSeek-OCR document extractor (local GPU-based vision OCR)."""
+    import os
+
+    # Get optional configuration
+    model_name = os.getenv("DEEPSEEK_OCR_MODEL", "deepseek-ai/DeepSeek-OCR")
+    device = os.getenv("DEEPSEEK_OCR_DEVICE", "cuda:0")
+
+    return DeepSeekOCRDocumentExtractor(model_name=model_name, device=device)
 
 
 # Whitelist of allowed import paths for dynamic factory loading (security)
